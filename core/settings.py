@@ -25,7 +25,15 @@ SECRET_KEY = 'django-insecure-)=l&62z(ji3cp86fy*vdv2@@k3aa26ml^lxfjmox=q9#a5x2+l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+
+    "gsm-backend.fly.dev",
+    "localhost",
+    "127.0.0.1",
+
+
+
+]
 
 
 # Application definition

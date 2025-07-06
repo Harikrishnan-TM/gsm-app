@@ -1,0 +1,95 @@
+<!-- templates/home.html -->
+<h2>Welcome {{ user.username }}</h2>
+
+{% if user.is_authenticated %}
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+  </form>
+
+  <hr>
+
+  <h3>📈 Available Stocks</h3>
+  <div id="stocks"></div>
+
+  <h3>💼 Your Portfolio</h3>
+  <div id="portfolio"></div>
+
+  <h3>🧾 Recent Transactions</h3>
+  <div id="transactions"></div>
+
+  <h3>💸 Buy/Sell Stock</h3>
+  <form id="trade-form">
+    {% csrf_token %}
+    <label>Stock Symbol: <input type="text" name="symbol" required></label><br>
+    <label>Quantity: <input type="number" name="quantity" required></label><br>
+    <label>Action:
+      <select name="action">
+        <option value="BUY">BUY</option>
+        <option value="SELL">SELL</option>
+      </select>
+    </label><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <p id="message" style="color:green;"></p>
+
+  <script>
+    const csrftoken = '{{ csrf_token }}';
+
+    async function fetchData() {
+      const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
+        fetch('/api/stocks/virtual/'),
+        fetch('/api/stocks/portfolio/'),
+        fetch('/api/stocks/transactions/')
+      ]);
+
+      const stocks = await stocksRes.json();
+      const portfolio = await portfolioRes.json();
+      const transactions = await transactionsRes.json();
+
+      document.getElementById('stocks').innerHTML = stocks.map(s => 
+        `<p>${s.symbol} - ${s.name}: $${s.price}</p>`).join('');
+
+      document.getElementById('portfolio').innerHTML = portfolio.map(p =>
+        `<p>${p.stock.symbol} - ${p.quantity} shares</p>`).join('');
+
+      document.getElementById('transactions').innerHTML = transactions.map(t =>
+        `<p>${t.action} ${t.quantity} of ${t.stock.symbol} @ $${t.price} on ${t.timestamp}</p>`).join('');
+    }
+
+    document.getElementById('trade-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        stock: form.symbol.value,
+        quantity: form.quantity.value,
+        action: form.action.value
+      };
+
+      const res = await fetch('/api/stocks/transactions/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        document.getElementById('message').innerText = "Trade executed!";
+        form.reset();
+        fetchData(); // Refresh
+      } else {
+        const error = await res.json();
+        document.getElementById('message').innerText = "Error: " + JSON.stringify(error);
+      }
+    });
+
+    fetchData();
+  </script>
+
+{% else %}
+  <a href="{% url 'login' %}">Login</a> |
+  <a href="{% url 'signup' %}">Signup</a>
+{% endif %}

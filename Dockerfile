@@ -9,12 +9,15 @@ ENV PORT 8080
 # Set workdir
 WORKDIR /app
 
-# Install system dependencies required by mysqlclient
+# Install system dependencies required for building Python packages like mysqlclient and reportlab
 RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
     build-essential \
     libssl-dev \
+    libfreetype6-dev \
+    libjpeg-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -28,5 +31,5 @@ COPY . .
 # Expose port
 EXPOSE $PORT
 
-# Start server with Daphne
+# Start the app with Daphne
 CMD ["daphne", "core.asgi:application"]

@@ -32,4 +32,5 @@ COPY . .
 EXPOSE $PORT
 
 # Start the app with Daphne
-CMD ["daphne", "core.asgi:application"]
+#CMD ["daphne", "core.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8080", "core.asgi:application"]

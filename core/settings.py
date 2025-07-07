@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'rest_framework_simplejwt',
     'website',
+    'api',
 ]
 
 MIDDLEWARE = [

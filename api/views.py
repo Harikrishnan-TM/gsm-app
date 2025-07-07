@@ -1,4 +1,4 @@
-# api/views.py
+# api/views.py ik ok
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view
 from rest_framework.response import Response

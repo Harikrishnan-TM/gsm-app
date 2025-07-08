@@ -83,7 +83,7 @@
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">Action</label>
-                  <select name="action" class="form-select">
+                  <select name="transaction_type" class="form-select">
                     <option value="BUY">BUY</option>
                     <option value="SELL">SELL</option>
                   </select>
@@ -144,10 +144,10 @@
     document.getElementById('transactions').innerHTML = transactions.length > 0 ?
       transactions.map(t =>
         `<tr>
-          <td>${t.action}</td>
+          <td>${t.transaction_type}</td>
           <td>${t.stock.symbol}</td>
           <td>${t.quantity}</td>
-          <td>₹${t.price}</td>
+          <td>₹${t.price_at_execution}</td>
           <td>${new Date(t.timestamp).toLocaleString()}</td>
         </tr>`).join('') :
       `<tr><td colspan="5" class="text-center">No recent trades</td></tr>`;
@@ -170,7 +170,7 @@
     const data = {
       stock_id: selectedStock.id,
       quantity: form.quantity.value,
-      action: form.action.value
+      transaction_type: form.transaction_type.value
     };
 
     const res = await fetch('/api/stocks/transactions/', {

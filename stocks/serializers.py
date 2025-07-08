@@ -2,14 +2,18 @@ from rest_framework import serializers
 from .models import VirtualStock, UserPortfolio, UserTransaction
 
 
-# ✅ Serializer for VirtualStock (used nested in others)
+# ✅ Serializer for VirtualStock with derived fields from related Stock
 class VirtualStockSerializer(serializers.ModelSerializer):
+    symbol = serializers.CharField(source='stock.symbol', read_only=True)
+    name = serializers.CharField(source='stock.name', read_only=True)
+    price = serializers.DecimalField(source='stock.price', max_digits=10, decimal_places=2, read_only=True)
+
     class Meta:
         model = VirtualStock
         fields = ['id', 'symbol', 'name', 'price']
 
 
-# ✅ Serializer for user portfolio with nested stock for read, and stock_id for write
+# ✅ Serializer for UserPortfolio with nested VirtualStock
 class UserPortfolioSerializer(serializers.ModelSerializer):
     stock = VirtualStockSerializer(read_only=True)
     stock_id = serializers.PrimaryKeyRelatedField(
@@ -23,7 +27,7 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
         fields = ['id', 'stock', 'stock_id', 'quantity']
 
 
-# ✅ Serializer for user transaction with nested stock for read, and stock_id for write
+# ✅ Serializer for UserTransaction with proper field names
 class UserTransactionSerializer(serializers.ModelSerializer):
     stock = VirtualStockSerializer(read_only=True)
     stock_id = serializers.PrimaryKeyRelatedField(
@@ -34,4 +38,4 @@ class UserTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserTransaction
-        fields = ['id', 'stock', 'stock_id', 'action', 'quantity', 'price', 'timestamp']
+        fields = ['id', 'stock', 'stock_id', 'transaction_type', 'quantity', 'price_at_execution', 'timestamp']

@@ -44,13 +44,13 @@ class UserTransactionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         stock = serializer.validated_data['stock']
         quantity = serializer.validated_data['quantity']
-        action = serializer.validated_data['action']
-        price = stock.price  # capture price at transaction time
+        transaction_type = serializer.validated_data['transaction_type']
+        price_at_execution = stock.stock.price  # get real stock price at time of transaction
 
         serializer.save(
             user=self.request.user,
             stock=stock,
             quantity=quantity,
-            action=action,
-            price=price
+            transaction_type=transaction_type,
+            price_at_execution=price_at_execution
         )

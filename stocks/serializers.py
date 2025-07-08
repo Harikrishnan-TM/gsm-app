@@ -39,3 +39,4 @@ class UserTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserTransaction
         fields = ['id', 'stock', 'stock_id', 'transaction_type', 'quantity', 'price_at_execution', 'timestamp']
+        read_only_fields = ['price_at_execution']  # ✅ add this line

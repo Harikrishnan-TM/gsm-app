@@ -6,7 +6,7 @@ from .models import VirtualStock, UserPortfolio, UserTransaction
 class VirtualStockSerializer(serializers.ModelSerializer):
     symbol = serializers.CharField(source='stock.symbol', read_only=True)
     name = serializers.CharField(source='stock.name', read_only=True)
-    price = serializers.DecimalField(source='stock.price', max_digits=10, decimal_places=2, read_only=True)
+    price = serializers.DecimalField(source='current_price', max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = VirtualStock

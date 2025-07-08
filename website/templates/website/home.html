@@ -116,8 +116,8 @@
   async function fetchData() {
     const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
       fetch('/api/stocks/'),
-      fetch('/api/stocks/portfolio/'),
-      fetch('/api/stocks/transactions/')
+      fetch('/api/portfolio/'),
+      fetch('/api/transactions/')
     ]);
 
     const stocks = await stocksRes.json();
@@ -173,7 +173,7 @@
       transaction_type: form.transaction_type.value
     };
 
-    const res = await fetch('/api/stocks/transactions/', {
+    const res = await fetch('/api/transactions/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

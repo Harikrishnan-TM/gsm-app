@@ -1,30 +1,35 @@
-# stocks/serializers.py
-
 from rest_framework import serializers
 from .models import VirtualStock, UserPortfolio, UserTransaction
 
-# ✅ Nested serializer for display
+
+# ✅ Serializer for VirtualStock (used nested in others)
 class VirtualStockSerializer(serializers.ModelSerializer):
     class Meta:
         model = VirtualStock
         fields = ['id', 'symbol', 'name', 'price']
 
-# ✅ Portfolio serializer using nested stock
+
+# ✅ Serializer for user portfolio with nested stock for read, and stock_id for write
 class UserPortfolioSerializer(serializers.ModelSerializer):
     stock = VirtualStockSerializer(read_only=True)
     stock_id = serializers.PrimaryKeyRelatedField(
-        queryset=VirtualStock.objects.all(), source='stock', write_only=True
+        queryset=VirtualStock.objects.all(),
+        source='stock',
+        write_only=True
     )
 
     class Meta:
         model = UserPortfolio
         fields = ['id', 'stock', 'stock_id', 'quantity']
 
-# ✅ Transaction serializer with nested stock and write support
+
+# ✅ Serializer for user transaction with nested stock for read, and stock_id for write
 class UserTransactionSerializer(serializers.ModelSerializer):
     stock = VirtualStockSerializer(read_only=True)
     stock_id = serializers.PrimaryKeyRelatedField(
-        queryset=VirtualStock.objects.all(), source='stock', write_only=True
+        queryset=VirtualStock.objects.all(),
+        source='stock',
+        write_only=True
     )
 
     class Meta:

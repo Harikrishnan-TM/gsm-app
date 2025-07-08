@@ -1,4 +1,3 @@
-<!-- templates/home.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,6 +111,7 @@
 
 <script>
   const csrftoken = '{{ csrf_token }}';
+  let stockList = [];
 
   async function fetchData() {
     const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
@@ -124,17 +124,19 @@
     const portfolio = await portfolioRes.json();
     const transactions = await transactionsRes.json();
 
+    stockList = stocks;
+
     document.getElementById('stocks').innerHTML = stocks.map(s =>
       `<div class="d-flex justify-content-between border-bottom py-1">
-         <strong>${s.ticker}</strong>
+         <strong>${s.symbol}</strong>
          <span>${s.name}</span>
-         <span>₹${s.current_price}</span>
+         <span>₹${s.price}</span>
        </div>`).join('');
 
     document.getElementById('portfolio').innerHTML = portfolio.length > 0 ?
       portfolio.map(p =>
         `<div class="d-flex justify-content-between border-bottom py-1">
-           <strong>${p.stock.ticker}</strong>
+           <strong>${p.stock.symbol}</strong>
            <span>${p.quantity} shares</span>
          </div>`).join('') :
       `<p>No holdings yet.</p>`;
@@ -142,10 +144,10 @@
     document.getElementById('transactions').innerHTML = transactions.length > 0 ?
       transactions.map(t =>
         `<tr>
-          <td>${t.transaction_type}</td>
-          <td>${t.stock.ticker}</td>
+          <td>${t.action}</td>
+          <td>${t.stock.symbol}</td>
           <td>${t.quantity}</td>
-          <td>₹${t.price_at_execution}</td>
+          <td>₹${t.price}</td>
           <td>${new Date(t.timestamp).toLocaleString()}</td>
         </tr>`).join('') :
       `<tr><td colspan="5" class="text-center">No recent trades</td></tr>`;
@@ -154,10 +156,21 @@
   document.getElementById('trade-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     const form = e.target;
+    const symbol = form.symbol.value.toUpperCase();
+
+    const selectedStock = stockList.find(s => s.symbol === symbol);
+    const msgEl = document.getElementById('message');
+
+    if (!selectedStock) {
+      msgEl.innerText = "❌ Error: Stock not found!";
+      msgEl.style.color = "red";
+      return;
+    }
+
     const data = {
-      stock: form.symbol.value,
+      stock_id: selectedStock.id,
       quantity: form.quantity.value,
-      transaction_type: form.action.value
+      action: form.action.value
     };
 
     const res = await fetch('/api/stocks/transactions/', {
@@ -169,7 +182,6 @@
       body: JSON.stringify(data)
     });
 
-    const msgEl = document.getElementById('message');
     if (res.ok) {
       msgEl.innerText = "✅ Trade executed successfully!";
       msgEl.style.color = "green";
@@ -183,7 +195,7 @@
   });
 
   fetchData();
-  setInterval(fetchData, 30000);  // Auto-refresh every 30s
+  setInterval(fetchData, 30000);
 </script>
 
 </body>

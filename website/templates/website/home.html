@@ -115,9 +115,9 @@
 
   async function fetchData() {
     const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
-      fetch('/api/stocks/'),
-      fetch('/api/portfolio/'),
-      fetch('/api/transactions/')
+      fetch('/api/stocks/', { credentials: 'include' }),
+      fetch('/api/portfolio/', { credentials: 'include' }),
+      fetch('/api/transactions/', { credentials: 'include' })
     ]);
 
     const stocks = await stocksRes.json();
@@ -174,12 +174,13 @@
     };
 
     const res = await fetch('/api/transactions/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify(data)
+     method: 'POST',
+    headers: {
+    'Content-Type': 'application/json',
+    'X-CSRFToken': csrftoken
+    },
+    credentials: 'include',
+    body: JSON.stringify(data)
     });
 
     if (res.ok) {

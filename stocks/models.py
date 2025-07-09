@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 
 class Stock(models.Model):
-    symbol = models.CharField(max_length=10)
+    symbol = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -11,19 +11,13 @@ class Stock(models.Model):
         return f"{self.symbol} - {self.name}"
 
 
-
-
-# You need a Stock model like this (assumed from context)
 class VirtualStock(models.Model):
-    stock = models.OneToOneField('Stock', on_delete=models.CASCADE)  # 1-to-1 with real stock
+    stock = models.OneToOneField(Stock, on_delete=models.CASCADE)  # 1-to-1 with real stock
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.stock.symbol} - ₹{self.current_price}"
-
-
-
 
 
 class UserPortfolio(models.Model):
@@ -43,7 +37,6 @@ class UserTransaction(models.Model):
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    #stock = models.ForeignKey(VirtualStock, on_delete=models.CASCADE)
     stock = models.ForeignKey(VirtualStock, on_delete=models.CASCADE, null=True, blank=True)
     transaction_type = models.CharField(max_length=4, choices=TRANSACTION_TYPES)
     quantity = models.PositiveIntegerField()
@@ -51,11 +44,10 @@ class UserTransaction(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} {self.transaction_type} {self.stock.stock.symbol} x{self.quantity} @ ₹{self.price_at_execution}"
+        stock_symbol = self.stock.stock.symbol if self.stock else "N/A"
+        return f"{self.user.username} {self.transaction_type} {stock_symbol} x{self.quantity} @ ₹{self.price_at_execution}"
 
 
-
-# In models.py
 class PriceHistory(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2)

@@ -7,6 +7,12 @@ from rest_framework.response import Response
 from .models import PriceHistory
 from django.utils.timezone import now, timedelta
 
+# views.py
+
+
+from stocks.models import VirtualStock, PriceHistory
+from django.shortcuts import get_object_or_404
+
 from .serializers import (
     VirtualStockSerializer,
     UserPortfolioSerializer,
@@ -81,17 +87,32 @@ class UserTransactionViewSet(viewsets.ModelViewSet):
 
 
 
+#class PriceHistoryView(APIView):
+    #def get(self, request, symbol):
+        # Get last 24 hours of price history
+        #from stocks.models import Stock
+        #try:
+            #stock = Stock.objects.get(symbol=symbol)
+        #except Stock.DoesNotExist:
+            #return Response({"error": "Stock not found"}, status=404)
+
+        #data = PriceHistory.objects.filter(stock=stock, timestamp__gte=now()-timedelta(hours=24)) \
+            #.order_by('timestamp') \
+            #.values('timestamp', 'price')
+
+        #return Response(data)
+
+
+
+
+
+
 class PriceHistoryView(APIView):
     def get(self, request, symbol):
-        # Get last 24 hours of price history
-        from stocks.models import Stock
-        try:
-            stock = Stock.objects.get(symbol=symbol)
-        except Stock.DoesNotExist:
-            return Response({"error": "Stock not found"}, status=404)
-
-        data = PriceHistory.objects.filter(stock=stock, timestamp__gte=now()-timedelta(hours=24)) \
-            .order_by('timestamp') \
-            .values('timestamp', 'price')
-
+        stock = get_object_or_404(VirtualStock, symbol=symbol)
+        history = PriceHistory.objects.filter(stock=stock).order_by('-timestamp')[:30]
+        data = [{
+            'timestamp': h.timestamp.isoformat(),
+            'price': float(h.price)
+        } for h in reversed(history)]
         return Response(data)

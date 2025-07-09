@@ -18,3 +18,8 @@ primary_region = 'bom'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+
+[processes]
+app = "gunicorn core.wsgi"  # This is your main web app
+simulator = "python manage.py simulate_market_loop"  # Background simulation

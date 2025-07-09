@@ -13,7 +13,7 @@ router.register(r'stocks', VirtualStockViewSet, basename='stock')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('api/history/<str:symbol>/', PriceHistoryView.as_view(), name='price-history'),
+    path('history/<str:symbol>/', PriceHistoryView.as_view(), name='price-history'),
 ]
 
 

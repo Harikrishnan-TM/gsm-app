@@ -23,3 +23,6 @@ primary_region = 'bom'
 [processes]
 app = "gunicorn core.wsgi"  # This is your main web app
 simulator = "python manage.py simulate_market_loop"  # Background simulation
+
+[deploy]
+  release_command = "python manage.py migrate"

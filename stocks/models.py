@@ -1,6 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
+class Stock(models.Model):
+    symbol = models.CharField(max_length=10)
+    name = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.symbol} - {self.name}"
+
+
+
+
 # You need a Stock model like this (assumed from context)
 class VirtualStock(models.Model):
     stock = models.OneToOneField('Stock', on_delete=models.CASCADE)  # 1-to-1 with real stock

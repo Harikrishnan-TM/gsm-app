@@ -52,3 +52,14 @@ class UserTransaction(models.Model):
 
     def __str__(self):
         return f"{self.user.username} {self.transaction_type} {self.stock.stock.symbol} x{self.quantity} @ ₹{self.price_at_execution}"
+
+
+
+# In models.py
+class PriceHistory(models.Model):
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.stock.symbol} - ₹{self.price} @ {self.timestamp}"

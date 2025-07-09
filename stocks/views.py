@@ -2,6 +2,11 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from .models import VirtualStock, UserPortfolio, UserTransaction
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import PriceHistory
+from django.utils.timezone import now, timedelta
+
 from .serializers import (
     VirtualStockSerializer,
     UserPortfolioSerializer,
@@ -71,3 +76,22 @@ class UserTransactionViewSet(viewsets.ModelViewSet):
 
         portfolio_entry.save()
         portfolio_entry.refresh_from_db()
+
+
+
+
+
+class PriceHistoryView(APIView):
+    def get(self, request, symbol):
+        # Get last 24 hours of price history
+        from stocks.models import Stock
+        try:
+            stock = Stock.objects.get(symbol=symbol)
+        except Stock.DoesNotExist:
+            return Response({"error": "Stock not found"}, status=404)
+
+        data = PriceHistory.objects.filter(stock=stock, timestamp__gte=now()-timedelta(hours=24)) \
+            .order_by('timestamp') \
+            .values('timestamp', 'price')
+
+        return Response(data)

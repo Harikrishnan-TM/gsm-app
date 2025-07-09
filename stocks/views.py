@@ -4,8 +4,14 @@ from rest_framework.authentication import SessionAuthentication
 from .models import VirtualStock, UserPortfolio, UserTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import PriceHistory
+#from .models import PriceHistory
 from django.utils.timezone import now, timedelta
+
+from stocks.models import Stock, PriceHistory
+
+
+
+
 
 # views.py
 
@@ -107,12 +113,18 @@ class UserTransactionViewSet(viewsets.ModelViewSet):
 
 
 
+
+
 class PriceHistoryView(APIView):
     def get(self, request, symbol):
-        stock = get_object_or_404(VirtualStock, symbol=symbol)
-        history = PriceHistory.objects.filter(stock=stock).order_by('-timestamp')[:30]
-        data = [{
-            'timestamp': h.timestamp.isoformat(),
-            'price': float(h.price)
-        } for h in reversed(history)]
+        stock = get_object_or_404(Stock, symbol=symbol)
+        history = PriceHistory.objects.filter(
+            stock=stock,
+            timestamp__gte=now() - timedelta(hours=24)
+        ).order_by('timestamp')[:100]
+
+        data = [
+            {'timestamp': h.timestamp.isoformat(), 'price': float(h.price)}
+            for h in history
+        ]
         return Response(data)

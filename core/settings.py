@@ -121,7 +121,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# Database
+# Database ok ok
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 

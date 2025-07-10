@@ -115,99 +115,107 @@
   let stockList = [];
 
   async function fetchData() {
-    const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
-      fetch('/api/stocks/', { credentials: 'include' }),
-      fetch('/api/portfolio/', { credentials: 'include' }),
-      fetch('/api/transactions/', { credentials: 'include' })
-    ]);
+    try {
+      const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
+        fetch('/api/stocks/', { credentials: 'include' }),
+        fetch('/api/portfolio/', { credentials: 'include' }),
+        fetch('/api/transactions/', { credentials: 'include' })
+      ]);
 
-    const stocks = await stocksRes.json();
-    const portfolio = await portfolioRes.json();
-    const transactions = await transactionsRes.json();
-    stockList = stocks;
+      if (!stocksRes.ok || !portfolioRes.ok || !transactionsRes.ok) {
+        throw new Error("One or more API calls failed.");
+      }
 
-    // Available Stocks
-    document.getElementById('stocks').innerHTML = stocks.map(s => `
-      <div class="mb-4">
-        <div class="d-flex justify-content-between border-bottom py-1">
-          <strong>${s.symbol}</strong>
-          <span>${s.name}</span>
-          <span>₹${s.price}</span>
+      const stocks = await stocksRes.json();
+      const portfolio = await portfolioRes.json();
+      const transactions = await transactionsRes.json();
+      stockList = stocks;
+
+      // Stocks UI
+      const stocksDiv = document.getElementById('stocks');
+      stocksDiv.innerHTML = stocks.map(s => `
+        <div class="mb-4">
+          <div class="d-flex justify-content-between border-bottom py-1">
+            <strong>${s.symbol}</strong>
+            <span>${s.name}</span>
+            <span>₹${s.price}</span>
+          </div>
+          <canvas id="chart-${s.symbol}" height="100"></canvas>
         </div>
-        <canvas id="chart-${s.symbol}" height="100"></canvas>
-      </div>
-    `).join('');
+      `).join('');
 
-    // Enhanced Price Charts
-    stocks.forEach(s => {
-      fetch(`/api/history/${s.symbol}/`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
-          const prices = data.map(d => d.price);
-          const timestamps = data.map(d => new Date(d.timestamp).toLocaleTimeString());
-          const min = Math.min(...prices);
-          const max = Math.max(...prices);
-          const padding = (max - min) * 0.1 || 1;
+      // Price charts
+      stocks.forEach(s => {
+        fetch(`/api/history/${s.symbol}/`, { credentials: 'include' })
+          .then(res => res.ok ? res.json() : [])
+          .then(data => {
+            if (!Array.isArray(data)) return;
+            const prices = data.map(d => d.price);
+            const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+            const min = Math.min(...prices);
+            const max = Math.max(...prices);
+            const padding = (max - min) * 0.1 || 1;
 
-          const ctx = document.getElementById(`chart-${s.symbol}`).getContext('2d');
-          new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: timestamps,
-              datasets: [{
-                label: `${s.symbol} Price`,
-                data: prices,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 1,
-                borderWidth: 2,
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: ctx => `₹${ctx.formattedValue}`
-                  }
-                }
+            const ctx = document.getElementById(`chart-${s.symbol}`).getContext('2d');
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: `${s.symbol} Price`,
+                  data: prices,
+                  borderColor: 'rgba(75, 192, 192, 1)',
+                  backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                  fill: true,
+                  tension: 0.4,
+                  pointRadius: 1,
+                  borderWidth: 2,
+                }]
               },
-              scales: {
-                x: {
-                  ticks: { maxTicksLimit: 6 }
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: ctx => `₹${ctx.formattedValue}`
+                    }
+                  }
                 },
-                y: {
-                  beginAtZero: false,
-                  suggestedMin: min - padding,
-                  suggestedMax: max + padding,
-                  ticks: {
-                    callback: value => `₹${value}`
+                scales: {
+                  x: { ticks: { maxTicksLimit: 6 } },
+                  y: {
+                    beginAtZero: false,
+                    suggestedMin: min - padding,
+                    suggestedMax: max + padding,
+                    ticks: { callback: v => `₹${v}` }
                   }
                 }
               }
-            }
-          });
-        });
-    });
+            });
+          }).catch(console.error);
+      });
 
-    // ✅ Updated Portfolio section with Profit/Loss & Current Price
-    document.getElementById('portfolio').innerHTML = portfolio.length > 0 ?
-      portfolio.map(p => {
-        const profit = p.profit_loss;
-        const percent = p.percentage_change;
+      // Portfolio UI
+      const portfolioDiv = document.getElementById('portfolio');
+      portfolioDiv.innerHTML = portfolio.length > 0 ? portfolio.map(p => {
+        const symbol = p.stock?.symbol || 'N/A';
+        const quantity = p.quantity ?? 0;
+        const avgPrice = p.average_price?.toFixed(2) ?? '0.00';
+        const currentPrice = p.current_price?.toFixed(2) ?? '0.00';
+        const profit = p.profit_loss ?? 0;
+        const percent = p.percentage_change ?? 0;
         const color = profit >= 0 ? 'green' : 'red';
         const sign = profit >= 0 ? '+' : '';
+
         return `
           <div class="border-bottom py-2">
             <div class="d-flex justify-content-between">
-              <strong>${p.stock.symbol}</strong>
-              <span>${p.quantity} shares @ ₹${p.average_price.toFixed(2)}</span>
+              <strong>${symbol}</strong>
+              <span>${quantity} shares @ ₹${avgPrice}</span>
             </div>
             <div class="d-flex justify-content-between small">
-              <span>💰 Current Price: ₹${p.current_price.toFixed(2)}</span>
+              <span>💰 Current Price: ₹${currentPrice}</span>
               <span style="color:${color}">
                 ${sign}₹${profit.toFixed(2)} (${sign}${percent.toFixed(2)}%)
               </span>
@@ -216,17 +224,24 @@
         `;
       }).join('') : `<p>No holdings yet.</p>`;
 
-    // Transactions
-    document.getElementById('transactions').innerHTML = transactions.length > 0 ?
-      transactions.map(t => `
+      // Transactions UI
+      const txDiv = document.getElementById('transactions');
+      txDiv.innerHTML = transactions.length > 0 ? transactions.map(t => `
         <tr>
           <td>${t.transaction_type}</td>
-          <td>${t.stock.symbol}</td>
+          <td>${t.stock?.symbol || 'N/A'}</td>
           <td>${t.quantity}</td>
           <td>₹${t.price_at_execution}</td>
           <td>${new Date(t.timestamp).toLocaleString()}</td>
         </tr>
       `).join('') : `<tr><td colspan="5" class="text-center">No recent trades</td></tr>`;
+
+    } catch (err) {
+      console.error("Error in fetchData():", err);
+      document.getElementById('stocks').innerHTML = `<p class="text-danger">Failed to load stocks.</p>`;
+      document.getElementById('portfolio').innerHTML = `<p class="text-danger">Failed to load portfolio.</p>`;
+      document.getElementById('transactions').innerHTML = `<tr><td colspan="5" class="text-danger text-center">Failed to load transactions.</td></tr>`;
+    }
   }
 
   document.getElementById('trade-form').addEventListener('submit', async function (e) {
@@ -248,24 +263,29 @@
       transaction_type: form.transaction_type.value
     };
 
-    const res = await fetch('/api/transactions/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      credentials: 'include',
-      body: JSON.stringify(data)
-    });
+    try {
+      const res = await fetch('/api/transactions/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
 
-    if (res.ok) {
-      msgEl.innerText = "✅ Trade executed successfully!";
-      msgEl.style.color = "green";
-      form.reset();
-      fetchData();
-    } else {
-      const error = await res.json();
-      msgEl.innerText = "❌ Error: " + JSON.stringify(error);
+      if (res.ok) {
+        msgEl.innerText = "✅ Trade executed successfully!";
+        msgEl.style.color = "green";
+        form.reset();
+        fetchData();
+      } else {
+        const error = await res.json();
+        msgEl.innerText = "❌ Error: " + (error.detail || JSON.stringify(error));
+        msgEl.style.color = "red";
+      }
+    } catch (err) {
+      msgEl.innerText = "❌ Network error: " + err.message;
       msgEl.style.color = "red";
     }
   });

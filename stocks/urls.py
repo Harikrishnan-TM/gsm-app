@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import VirtualStockViewSet, UserPortfolioViewSet, UserTransactionViewSet
 
 
+
 from .views import PriceHistoryView
 
 
@@ -14,7 +15,11 @@ router.register(r'stocks', VirtualStockViewSet, basename='stock')
 urlpatterns = [
     path('', include(router.urls)),
     path('history/<str:symbol>/', PriceHistoryView.as_view(), name='price-history'),
+   
 ]
+
+
+
 
 
 

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import VirtualStock, UserPortfolio, UserTransaction
+from website.models import UserProfile  # ✅ Import the profile model
 
 
 
@@ -77,6 +78,8 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
 
 
 # ✅ Serializer for UserTransaction with proper field names
+
+
 class UserTransactionSerializer(serializers.ModelSerializer):
     stock = VirtualStockSerializer(read_only=True)
     stock_id = serializers.PrimaryKeyRelatedField(
@@ -92,6 +95,33 @@ class UserTransactionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         stock = validated_data['stock']
-        # Automatically use the current price from the VirtualStock model
-        validated_data['price_at_execution'] = float(stock.current_price)
+        user = self.context['request'].user
+        transaction_type = validated_data['transaction_type']
+        quantity = validated_data['quantity']
+        current_price = float(stock.current_price)
+
+        validated_data['price_at_execution'] = current_price
+
+        # ✅ Fetch the user's profile
+        profile = UserProfile.objects.get(user=user)
+
+        if transaction_type == 'BUY':
+            total_cost = quantity * current_price
+            if profile.balance < total_cost:
+                raise serializers.ValidationError("❌ Insufficient balance.")
+            profile.balance -= total_cost
+
+        elif transaction_type == 'SELL':
+            # ✅ Check if user has enough stock to sell
+            from stocks.models import UserPortfolio  # Import here to avoid circular imports
+            portfolio = UserPortfolio.objects.filter(user=user, stock=stock).first()
+
+            if not portfolio or portfolio.quantity < quantity:
+                raise serializers.ValidationError("❌ You do not have enough shares to sell.")
+
+            profile.balance += quantity * current_price
+
+        profile.save()
+
+        validated_data['user'] = user
         return super().create(validated_data)

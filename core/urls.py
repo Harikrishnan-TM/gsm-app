@@ -2,6 +2,15 @@
 
 from django.contrib import admin
 from django.urls import path, include
+
+
+#from website.models import UserProfile
+
+
+
+
+
+#from .views import MyProfileView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -21,5 +30,12 @@ urlpatterns = [
 
     # Web interface
     path('', include('website.urls')),
+    #path('my-profile/', MyProfileView.as_view(), name='my-profile'),
+   
 ]
+
+
+
+
+
 

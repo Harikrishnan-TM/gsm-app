@@ -7,3 +7,11 @@ class CoreConfig(AppConfig):
     def ready(self):
         from . import apscheduler_jobs
         apscheduler_jobs.start()
+        import core.signals  # 👈 ensures signal is connected
+
+
+
+
+
+
+        

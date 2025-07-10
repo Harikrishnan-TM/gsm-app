@@ -41,19 +41,18 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
         ]
 
     def get_current_price(self, obj):
-        return round(obj.stock.stock.price, 2)
+        return round(obj.stock.price, 2)
 
     def get_profit_loss(self, obj):
-        current_price = obj.stock.stock.price
+        current_price = obj.stock.price
         profit = (current_price - obj.average_price) * obj.quantity
         return round(profit, 2)
 
     def get_percentage_change(self, obj):
         if obj.average_price == 0:
-            return 0.0
-        current_price = obj.stock.stock.price
+         return 0.0
+        current_price = obj.stock.price
         return round(((current_price - obj.average_price) / obj.average_price) * 100, 2)
-
 
 
 # ✅ Serializer for UserTransaction with proper field names

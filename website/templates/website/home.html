@@ -193,8 +193,9 @@
       // Handle Portfolio
       if (portfolioRes.status === 'fulfilled' && portfolioRes.value.ok) {
         const portfolio = await portfolioRes.value.json();
-        document.getElementById('portfolio').innerHTML = portfolio.length > 0 ?
-          portfolio.map(p => {
+        if (portfolio.length > 0) {
+          const totalValue = portfolio.reduce((acc, p) => acc + (p.current_price * p.quantity), 0);
+          const holdingsHtml = portfolio.map(p => {
             const profit = p.profit_loss;
             const percent = p.percentage_change;
             const color = profit >= 0 ? 'green' : 'red';
@@ -208,12 +209,21 @@
                 <div class="d-flex justify-content-between small">
                   <span>💰 Current Price: ₹${p.current_price.toFixed(2)}</span>
                   <span style="color:${color}">
-                    ${sign}₹${profit.toFixed(2)} (${sign}${percent.toFixed(2)}%)
+                    ${sign}₹${profit.toFixed(2)} (${percent === null ? 'N/A' : `${sign}${percent.toFixed(2)}%`})
                   </span>
                 </div>
               </div>
             `;
-          }).join('') : `<p>No holdings yet.</p>`;
+          }).join('');
+          document.getElementById('portfolio').innerHTML = `
+            <div class="mb-2 text-end fw-bold">
+              📊 Total Value: ₹${totalValue.toFixed(2)}
+            </div>
+            ${holdingsHtml}
+          `;
+        } else {
+          document.getElementById('portfolio').innerHTML = `<p>No holdings yet.</p>`;
+        }
       } else {
         document.getElementById('portfolio').innerHTML = '<p class="text-danger">Failed to load portfolio.</p>';
       }

@@ -50,7 +50,7 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
 
     def get_percentage_change(self, obj):
         if obj.average_price == 0:
-            return 0.0
+            return None  # or float('inf') or 'N/A'
         current_price = float(obj.stock.current_price)
         return round(((current_price - obj.average_price) / obj.average_price) * 100, 2)
 

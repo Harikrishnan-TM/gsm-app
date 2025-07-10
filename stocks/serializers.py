@@ -22,9 +22,38 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
+    average_price = serializers.FloatField(read_only=True)
+    current_price = serializers.SerializerMethodField()
+    profit_loss = serializers.SerializerMethodField()
+    percentage_change = serializers.SerializerMethodField()  # ← Add this field
+
     class Meta:
         model = UserPortfolio
-        fields = ['id', 'stock', 'stock_id', 'quantity']
+        fields = [
+            'id',
+            'stock',
+            'stock_id',
+            'quantity',
+            'average_price',
+            'current_price',
+            'profit_loss',
+            'percentage_change',  # ← Include in fields
+        ]
+
+    def get_current_price(self, obj):
+        return round(obj.stock.stock.price, 2)
+
+    def get_profit_loss(self, obj):
+        current_price = obj.stock.stock.price
+        profit = (current_price - obj.average_price) * obj.quantity
+        return round(profit, 2)
+
+    def get_percentage_change(self, obj):
+        if obj.average_price == 0:
+            return 0.0
+        current_price = obj.stock.stock.price
+        return round(((current_price - obj.average_price) / obj.average_price) * 100, 2)
+
 
 
 # ✅ Serializer for UserTransaction with proper field names

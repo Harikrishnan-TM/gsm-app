@@ -126,7 +126,7 @@
     const transactions = await transactionsRes.json();
     stockList = stocks;
 
-    // Update Available Stocks + Charts
+    // Available Stocks
     document.getElementById('stocks').innerHTML = stocks.map(s => `
       <div class="mb-4">
         <div class="d-flex justify-content-between border-bottom py-1">
@@ -193,14 +193,22 @@
         });
     });
 
-    // Portfolio
+    // Updated Portfolio section with Profit/Loss
     document.getElementById('portfolio').innerHTML = portfolio.length > 0 ?
-      portfolio.map(p => `
-        <div class="d-flex justify-content-between border-bottom py-1">
-          <strong>${p.stock.symbol}</strong>
-          <span>${p.quantity} shares</span>
-        </div>
-      `).join('') : `<p>No holdings yet.</p>`;
+      portfolio.map(p => {
+        const profit = p.profit_loss;
+        const percent = p.percentage_change;
+        const color = profit >= 0 ? 'green' : 'red';
+        const sign = profit >= 0 ? '+' : '';
+        return `
+          <div class="d-flex justify-content-between border-bottom py-1">
+            <div><strong>${p.stock.symbol}</strong> (${p.quantity} shares)</div>
+            <div style="color:${color}">
+              ₹${sign}${profit} (${sign}${percent}%)
+            </div>
+          </div>
+        `;
+      }).join('') : `<p>No holdings yet.</p>`;
 
     // Transactions
     document.getElementById('transactions').innerHTML = transactions.length > 0 ?

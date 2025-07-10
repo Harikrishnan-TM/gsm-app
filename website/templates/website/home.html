@@ -37,7 +37,7 @@
         <div class="card shadow-sm">
           <div class="card-header">💼 <strong>Your Portfolio</strong></div>
           <div class="card-body" id="portfolio">
-            <p>No holdings yet.</p>
+            <p>Loading...</p>
           </div>
         </div>
       </div>
@@ -116,131 +116,126 @@
 
   async function fetchData() {
     try {
-      const [stocksRes, portfolioRes, transactionsRes] = await Promise.all([
+      const [stocksRes, portfolioRes, transactionsRes] = await Promise.allSettled([
         fetch('/api/stocks/', { credentials: 'include' }),
         fetch('/api/portfolio/', { credentials: 'include' }),
         fetch('/api/transactions/', { credentials: 'include' })
       ]);
 
-      if (!stocksRes.ok || !portfolioRes.ok || !transactionsRes.ok) {
-        throw new Error("One or more API calls failed.");
-      }
-
-      const stocks = await stocksRes.json();
-      const portfolio = await portfolioRes.json();
-      const transactions = await transactionsRes.json();
-      stockList = stocks;
-
-      // Stocks UI
-      const stocksDiv = document.getElementById('stocks');
-      stocksDiv.innerHTML = stocks.map(s => `
-        <div class="mb-4">
-          <div class="d-flex justify-content-between border-bottom py-1">
-            <strong>${s.symbol}</strong>
-            <span>${s.name}</span>
-            <span>₹${s.price}</span>
+      // Handle Stocks
+      if (stocksRes.status === 'fulfilled' && stocksRes.value.ok) {
+        const stocks = await stocksRes.value.json();
+        stockList = stocks;
+        document.getElementById('stocks').innerHTML = stocks.map(s => `
+          <div class="mb-4">
+            <div class="d-flex justify-content-between border-bottom py-1">
+              <strong>${s.symbol}</strong>
+              <span>${s.name}</span>
+              <span>₹${s.price}</span>
+            </div>
+            <canvas id="chart-${s.symbol}" height="100"></canvas>
           </div>
-          <canvas id="chart-${s.symbol}" height="100"></canvas>
-        </div>
-      `).join('');
-
-      // Price charts
-      stocks.forEach(s => {
-        fetch(`/api/history/${s.symbol}/`, { credentials: 'include' })
-          .then(res => res.ok ? res.json() : [])
-          .then(data => {
-            if (!Array.isArray(data)) return;
-            const prices = data.map(d => d.price);
-            const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
-            const min = Math.min(...prices);
-            const max = Math.max(...prices);
-            const padding = (max - min) * 0.1 || 1;
-
-            const ctx = document.getElementById(`chart-${s.symbol}`).getContext('2d');
-            new Chart(ctx, {
-              type: 'line',
-              data: {
-                labels: labels,
-                datasets: [{
-                  label: `${s.symbol} Price`,
-                  data: prices,
-                  borderColor: 'rgba(75, 192, 192, 1)',
-                  backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                  fill: true,
-                  tension: 0.4,
-                  pointRadius: 1,
-                  borderWidth: 2,
-                }]
-              },
-              options: {
-                responsive: true,
-                plugins: {
-                  legend: { display: false },
-                  tooltip: {
-                    callbacks: {
-                      label: ctx => `₹${ctx.formattedValue}`
+        `).join('');
+        stocks.forEach(s => {
+          fetch(`/api/history/${s.symbol}/`, { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+              const prices = data.map(d => d.price);
+              const timestamps = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+              const min = Math.min(...prices);
+              const max = Math.max(...prices);
+              const padding = (max - min) * 0.1 || 1;
+              const ctx = document.getElementById(`chart-${s.symbol}`).getContext('2d');
+              new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: timestamps,
+                  datasets: [{
+                    label: `${s.symbol} Price`,
+                    data: prices,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    borderWidth: 2,
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: ctx => `₹${ctx.formattedValue}`
+                      }
+                    }
+                  },
+                  scales: {
+                    x: { ticks: { maxTicksLimit: 6 }},
+                    y: {
+                      beginAtZero: false,
+                      suggestedMin: min - padding,
+                      suggestedMax: max + padding,
+                      ticks: {
+                        callback: value => `₹${value}`
+                      }
                     }
                   }
-                },
-                scales: {
-                  x: { ticks: { maxTicksLimit: 6 } },
-                  y: {
-                    beginAtZero: false,
-                    suggestedMin: min - padding,
-                    suggestedMax: max + padding,
-                    ticks: { callback: v => `₹${v}` }
-                  }
                 }
-              }
+              });
             });
-          }).catch(console.error);
-      });
+        });
+      } else {
+        document.getElementById('stocks').innerHTML = '<p class="text-danger">Failed to load stocks.</p>';
+      }
 
-      // Portfolio UI
-      const portfolioDiv = document.getElementById('portfolio');
-      portfolioDiv.innerHTML = portfolio.length > 0 ? portfolio.map(p => {
-        const symbol = p.stock?.symbol || 'N/A';
-        const quantity = p.quantity ?? 0;
-        const avgPrice = p.average_price?.toFixed(2) ?? '0.00';
-        const currentPrice = p.current_price?.toFixed(2) ?? '0.00';
-        const profit = p.profit_loss ?? 0;
-        const percent = p.percentage_change ?? 0;
-        const color = profit >= 0 ? 'green' : 'red';
-        const sign = profit >= 0 ? '+' : '';
+      // Handle Portfolio
+      if (portfolioRes.status === 'fulfilled' && portfolioRes.value.ok) {
+        const portfolio = await portfolioRes.value.json();
+        document.getElementById('portfolio').innerHTML = portfolio.length > 0 ?
+          portfolio.map(p => {
+            const profit = p.profit_loss;
+            const percent = p.percentage_change;
+            const color = profit >= 0 ? 'green' : 'red';
+            const sign = profit >= 0 ? '+' : '';
+            return `
+              <div class="border-bottom py-2">
+                <div class="d-flex justify-content-between">
+                  <strong>${p.stock.symbol}</strong>
+                  <span>${p.quantity} shares @ ₹${p.average_price.toFixed(2)}</span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                  <span>💰 Current Price: ₹${p.current_price.toFixed(2)}</span>
+                  <span style="color:${color}">
+                    ${sign}₹${profit.toFixed(2)} (${sign}${percent.toFixed(2)}%)
+                  </span>
+                </div>
+              </div>
+            `;
+          }).join('') : `<p>No holdings yet.</p>`;
+      } else {
+        document.getElementById('portfolio').innerHTML = '<p class="text-danger">Failed to load portfolio.</p>';
+      }
 
-        return `
-          <div class="border-bottom py-2">
-            <div class="d-flex justify-content-between">
-              <strong>${symbol}</strong>
-              <span>${quantity} shares @ ₹${avgPrice}</span>
-            </div>
-            <div class="d-flex justify-content-between small">
-              <span>💰 Current Price: ₹${currentPrice}</span>
-              <span style="color:${color}">
-                ${sign}₹${profit.toFixed(2)} (${sign}${percent.toFixed(2)}%)
-              </span>
-            </div>
-          </div>
-        `;
-      }).join('') : `<p>No holdings yet.</p>`;
-
-      // Transactions UI
-      const txDiv = document.getElementById('transactions');
-      txDiv.innerHTML = transactions.length > 0 ? transactions.map(t => `
-        <tr>
-          <td>${t.transaction_type}</td>
-          <td>${t.stock?.symbol || 'N/A'}</td>
-          <td>${t.quantity}</td>
-          <td>₹${t.price_at_execution}</td>
-          <td>${new Date(t.timestamp).toLocaleString()}</td>
-        </tr>
-      `).join('') : `<tr><td colspan="5" class="text-center">No recent trades</td></tr>`;
-
+      // Handle Transactions
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        const transactions = await transactionsRes.value.json();
+        document.getElementById('transactions').innerHTML = transactions.length > 0 ?
+          transactions.map(t => `
+            <tr>
+              <td>${t.transaction_type}</td>
+              <td>${t.stock.symbol}</td>
+              <td>${t.quantity}</td>
+              <td>₹${t.price_at_execution}</td>
+              <td>${new Date(t.timestamp).toLocaleString()}</td>
+            </tr>
+          `).join('') : `<tr><td colspan="5" class="text-center">No recent trades</td></tr>`;
+      } else {
+        document.getElementById('transactions').innerHTML = `<tr><td colspan="5" class="text-danger text-center">Failed to load transactions.</td></tr>`;
+      }
     } catch (err) {
-      console.error("Error in fetchData():", err);
-      document.getElementById('stocks').innerHTML = `<p class="text-danger">Failed to load stocks.</p>`;
-      document.getElementById('portfolio').innerHTML = `<p class="text-danger">Failed to load portfolio.</p>`;
-      document.getElementById('transactions').innerHTML = `<tr><td colspan="5" class="text-danger text-center">Failed to load transactions.</td></tr>`;
+      console.error(err);
     }
   }
 
@@ -285,8 +280,9 @@
         msgEl.style.color = "red";
       }
     } catch (err) {
-      msgEl.innerText = "❌ Network error: " + err.message;
+      msgEl.innerText = "❌ Network error. Please try again.";
       msgEl.style.color = "red";
+      console.error(err);
     }
   });
 

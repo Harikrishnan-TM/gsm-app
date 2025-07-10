@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import VirtualStock, UserPortfolio, UserTransaction
 
 
+
 # ✅ Serializer for VirtualStock with derived fields from related Stock
 class VirtualStockSerializer(serializers.ModelSerializer):
     symbol = serializers.CharField(source='stock.symbol', read_only=True)
@@ -41,9 +42,8 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
         ]
 
     def get_average_price(self, obj):
-        # Get all BUY transactions for this user and this stock
-        from gsm.models import Transaction  # Update to your app name if different
-        transactions = Transaction.objects.filter(
+        from .models import UserTransaction  # ✅ Use your actual model
+        transactions = UserTransaction.objects.filter(
             user=obj.user,
             stock=obj.stock,
             transaction_type='BUY'
@@ -88,4 +88,10 @@ class UserTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserTransaction
         fields = ['id', 'stock', 'stock_id', 'transaction_type', 'quantity', 'price_at_execution', 'timestamp']
-        read_only_fields = ['price_at_execution']  # ✅ add this line
+        read_only_fields = ['price_at_execution']
+
+    def create(self, validated_data):
+        stock = validated_data['stock']
+        # Automatically use the current price from the VirtualStock model
+        validated_data['price_at_execution'] = float(stock.current_price)
+        return super().create(validated_data)

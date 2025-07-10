@@ -22,7 +22,7 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
-    average_price = serializers.FloatField(read_only=True)
+    average_price = serializers.SerializerMethodField()
     current_price = serializers.SerializerMethodField()
     profit_loss = serializers.SerializerMethodField()
     percentage_change = serializers.SerializerMethodField()
@@ -40,19 +40,38 @@ class UserPortfolioSerializer(serializers.ModelSerializer):
             'percentage_change',
         ]
 
+    def get_average_price(self, obj):
+        # Get all BUY transactions for this user and this stock
+        from gsm.models import Transaction  # Update to your app name if different
+        transactions = Transaction.objects.filter(
+            user=obj.user,
+            stock=obj.stock,
+            transaction_type='BUY'
+        )
+
+        total_qty = sum(t.quantity for t in transactions)
+        total_cost = sum(t.quantity * t.price_at_execution for t in transactions)
+
+        if total_qty == 0:
+            return 0.0
+
+        return round(total_cost / total_qty, 2)
+
     def get_current_price(self, obj):
-        return round(float(obj.stock.current_price), 2)  # ✔️ Not obj.stock.stock.price
+        return round(float(obj.stock.current_price), 2)
 
     def get_profit_loss(self, obj):
+        average_price = self.get_average_price(obj)
         current_price = float(obj.stock.current_price)
-        profit = (current_price - obj.average_price) * obj.quantity
+        profit = (current_price - average_price) * obj.quantity
         return round(profit, 2)
 
     def get_percentage_change(self, obj):
-        if obj.average_price == 0:
-            return None  # or float('inf') or 'N/A'
+        average_price = self.get_average_price(obj)
+        if average_price == 0:
+            return None
         current_price = float(obj.stock.current_price)
-        return round(((current_price - obj.average_price) / obj.average_price) * 100, 2)
+        return round(((current_price - average_price) / average_price) * 100, 2)
 
 
 

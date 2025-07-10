@@ -193,7 +193,7 @@
         });
     });
 
-    // Updated Portfolio section with Profit/Loss
+    // ✅ Updated Portfolio section with Profit/Loss & Current Price
     document.getElementById('portfolio').innerHTML = portfolio.length > 0 ?
       portfolio.map(p => {
         const profit = p.profit_loss;
@@ -201,10 +201,16 @@
         const color = profit >= 0 ? 'green' : 'red';
         const sign = profit >= 0 ? '+' : '';
         return `
-          <div class="d-flex justify-content-between border-bottom py-1">
-            <div><strong>${p.stock.symbol}</strong> (${p.quantity} shares)</div>
-            <div style="color:${color}">
-              ₹${sign}${profit} (${sign}${percent}%)
+          <div class="border-bottom py-2">
+            <div class="d-flex justify-content-between">
+              <strong>${p.stock.symbol}</strong>
+              <span>${p.quantity} shares @ ₹${p.average_price.toFixed(2)}</span>
+            </div>
+            <div class="d-flex justify-content-between small">
+              <span>💰 Current Price: ₹${p.current_price.toFixed(2)}</span>
+              <span style="color:${color}">
+                ${sign}₹${profit.toFixed(2)} (${sign}${percent.toFixed(2)}%)
+              </span>
             </div>
           </div>
         `;

@@ -10,6 +10,10 @@ from stocks.models import UserPortfolio
 
 
 
+
+
+
+
 from django.contrib import messages
 
 from website.models import MonthlyTournamentEntry
@@ -238,3 +242,15 @@ def leaderboard_api(request):
 @login_required
 def leaderboard_view(request):
     return render(request, 'website/leaderboard.html')
+
+
+
+
+
+@login_required
+def get_trading_status(request):
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        return JsonResponse({'is_trading_locked': profile.is_trading_locked})
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'Profile not found'}, status=404)

@@ -14,6 +14,12 @@ from stocks.models import UserPortfolio
 
 
 
+
+
+
+
+
+
 from django.contrib import messages
 from django.utils import timezone
 from website.models import MonthlyTournamentEntry
@@ -134,32 +140,37 @@ def join_tournament(request):
 
 
 
+logger = logging.getLogger(__name__)
+
 def leaderboard_api(request):
-    leaderboard = []
+    try:
+        leaderboard = []
+        users = User.objects.all()
 
-    users = User.objects.all()
+        for user in users:
+            user_portfolio = UserPortfolio.objects.filter(user=user)
 
-    for user in users:
-        user_portfolio = Portfolio.objects.filter(user=user)
+            total_value = 0
+            total_cost = 0
 
-        total_value = 0
-        total_cost = 0
+            for holding in user_portfolio:
+                # Convert Decimal to float for safe arithmetic
+                current_price = float(holding.stock.current_price)
+                total_value += current_price * holding.quantity
+                total_cost += holding.average_price * holding.quantity
 
-        for holding in user_portfolio:
-            total_value += holding.current_price * holding.quantity
-            total_cost += holding.average_price * holding.quantity
+            leaderboard.append({
+                'username': user.username,
+                'portfolio_value': round(total_value, 2),
+                'total_profit': round(total_value - total_cost, 2),
+            })
 
-        leaderboard.append({
-            'username': user.username,
-            'portfolio_value': round(total_value, 2),
-            'total_profit': round(total_value - total_cost, 2),
-        })
+        leaderboard_sorted = sorted(leaderboard, key=lambda x: x['portfolio_value'], reverse=True)
+        return JsonResponse(leaderboard_sorted, safe=False)
 
-    # Sort by portfolio value (highest first)
-    leaderboard_sorted = sorted(leaderboard, key=lambda x: x['portfolio_value'], reverse=True)
-
-    return JsonResponse(leaderboard_sorted, safe=False)
-
+    except Exception as e:
+        logger.error("Error in leaderboard_api: %s", e, exc_info=True)
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
 

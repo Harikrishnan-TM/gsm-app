@@ -18,20 +18,45 @@ from django.contrib import messages
 from django.utils import timezone
 from website.models import MonthlyTournamentEntry
 
+import logging
+from django.shortcuts import render
+
+
 from .models import UserProfile
 
 
 
  # ✅ Import from the app where UserProfile is defined
 
+
+
+
+# Set up logger
+logger = logging.getLogger(__name__)
+
 def home(request):
     profile = None
-    if request.user.is_authenticated:
-        try:
-            profile = UserProfile.objects.get(user=request.user)
-        except UserProfile.DoesNotExist:
-            profile = None  # Optional fallback, or you could create one here
+    try:
+        if request.user.is_authenticated:
+            try:
+                profile = UserProfile.objects.get(user=request.user)
+            except UserProfile.DoesNotExist:
+                logger.warning(f"UserProfile not found for user {request.user.username}")
+                profile = None  # Or create one if needed
+    except Exception as e:
+        logger.exception("Unexpected error in home view")
+        # Optional: add a user-visible error message if desired
+        return render(request, 'website/home.html', {
+            'profile': None,
+            'error': 'An unexpected error occurred. Our team has been notified.'
+        })
+
     return render(request, 'website/home.html', {'profile': profile})
+
+
+
+
+
 
 def signup_view(request):
     if request.method == 'POST':

@@ -11,6 +11,15 @@
 
 <div class="container my-5">
   {% if user.is_authenticated %}
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2>Welcome, {{ user.username }} 👋</h2>
@@ -23,40 +32,6 @@
         <button class="btn btn-outline-danger" type="submit">Logout</button>
       </form>
     </div>
-    {#
-    {% load tz %}
-    {% now "n" as current_month %}
-    {% now "Y" as current_year %}
-    {% if not request.user.monthlytournamententry_set.filter(month=current_month, year=current_year).exists %}
-      <div class="alert alert-info d-flex justify-content-between align-items-center">
-        <div>🏆 You haven’t joined this month’s tournament yet.</div>
-        <form method="post" action="{% url 'join_tournament' %}">
-          {% csrf_token %}
-          <button class="btn btn-primary btn-sm">Join Tournament</button>
-        </form>
-      </div>
-    {% endif %}
-    #}
-    <!-- Leaderboard Link Card -->
-    <div class="mb-4">
-      <div class="card shadow-sm border-info">
-        <div class="card-body d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="card-title mb-1">🏅 View Monthly Leaderboard</h5>
-            <p class="card-text text-muted mb-0">See how you rank among others this month</p>
-          </div>
-          <a href="{% url 'leaderboard' %}" class="btn btn-outline-primary">Go to Leaderboard</a>
-        </div>
-      </div>
-    </div>
-
-    {% if messages %}
-      <div class="mt-3">
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
 
     <div class="row">
       <!-- Available Stocks -->
@@ -137,6 +112,31 @@
           </div>
         </div>
       </div>
+
+      <!-- Leaderboard -->
+      <div class="col-md-12 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header">🏆 <strong>Leaderboard</strong></div>
+          <div class="card-body">
+            <a href="{% url 'leaderboard' %}" class="btn btn-primary">View Full Leaderboard</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Uncomment below when needed -->
+      {#
+      <div class="col-md-12 mb-4">
+        <div class="card shadow-sm">
+          <div class="card-header">📅 <strong>Monthly Tournament</strong></div>
+          <div class="card-body">
+            <form method="post" action="{% url 'join_tournament' %}">
+              {% csrf_token %}
+              <button class="btn btn-warning" type="submit">Join Monthly Tournament</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      #}
     </div>
 
   {% else %}
@@ -150,9 +150,195 @@
   {% endif %}
 </div>
 
-<!-- JS remains unchanged -->
+<!-- JS: Fetch data -->
 <script>
-  // JavaScript code is unchanged...
+  const csrftoken = '{{ csrf_token }}';
+  let stockList = [];
+
+  async function fetchData() {
+    try {
+      const [stocksRes, portfolioRes, transactionsRes] = await Promise.allSettled([
+        fetch('/api/stocks/', { credentials: 'include' }),
+        fetch('/api/portfolio/', { credentials: 'include' }),
+        fetch('/api/transactions/', { credentials: 'include' })
+      ]);
+
+      // Stocks
+      if (stocksRes.status === 'fulfilled' && stocksRes.value.ok) {
+        const stocks = await stocksRes.value.json();
+        stockList = stocks;
+        document.getElementById('stocks').innerHTML = stocks.map(s => `
+          <div class="mb-4">
+            <div class="d-flex justify-content-between border-bottom py-1">
+              <strong>${s.symbol}</strong>
+              <span>${s.name}</span>
+              <span>₹${s.price}</span>
+            </div>
+            <canvas id="chart-${s.symbol}" height="100"></canvas>
+          </div>
+        `).join('');
+        stocks.forEach(s => {
+          fetch(`/api/history/${s.symbol}/`, { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+              const prices = data.map(d => d.price);
+              const timestamps = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+              const min = Math.min(...prices);
+              const max = Math.max(...prices);
+              const padding = (max - min) * 0.1 || 1;
+              const ctx = document.getElementById(`chart-${s.symbol}`).getContext('2d');
+              new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: timestamps,
+                  datasets: [{
+                    label: `${s.symbol} Price`,
+                    data: prices,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    borderWidth: 2,
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: ctx => `₹${ctx.formattedValue}`
+                      }
+                    }
+                  },
+                  scales: {
+                    x: { ticks: { maxTicksLimit: 6 }},
+                    y: {
+                      beginAtZero: false,
+                      suggestedMin: min - padding,
+                      suggestedMax: max + padding,
+                      ticks: {
+                        callback: value => `₹${value}`
+                      }
+                    }
+                  }
+                }
+              });
+            });
+        });
+      } else {
+        document.getElementById('stocks').innerHTML = '<p class="text-danger">Failed to load stocks.</p>';
+      }
+
+      // Portfolio
+      if (portfolioRes.status === 'fulfilled' && portfolioRes.value.ok) {
+        const portfolio = await portfolioRes.value.json();
+        if (portfolio.length > 0) {
+          const totalValue = portfolio.reduce((acc, p) => acc + (p.current_price * p.quantity), 0);
+          const holdingsHtml = portfolio.map(p => {
+            const profit = p.profit_loss;
+            const percent = p.percentage_change;
+            const color = profit >= 0 ? 'green' : 'red';
+            const sign = profit >= 0 ? '+' : '';
+            return `
+              <div class="border-bottom py-2">
+                <div class="d-flex justify-content-between">
+                  <strong>${p.stock.symbol}</strong>
+                  <span>${p.quantity} shares @ ₹${p.average_price.toFixed(2)}</span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                  <span>💰 Current Price: ₹${p.current_price.toFixed(2)}</span>
+                  <span style="color:${color}">
+                    ${sign}₹${profit.toFixed(2)} (${percent === null ? 'N/A' : `${sign}${percent.toFixed(2)}%`})
+                  </span>
+                </div>
+              </div>
+            `;
+          }).join('');
+          document.getElementById('portfolio').innerHTML = `
+            <div class="mb-2 text-end fw-bold">
+              📊 Total Value: ₹${totalValue.toFixed(2)}
+            </div>
+            ${holdingsHtml}
+          `;
+        } else {
+          document.getElementById('portfolio').innerHTML = `<p>No holdings yet.</p>`;
+        }
+      } else {
+        document.getElementById('portfolio').innerHTML = '<p class="text-danger">Failed to load portfolio.</p>';
+      }
+
+      // Transactions
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        const transactions = await transactionsRes.value.json();
+        document.getElementById('transactions').innerHTML = transactions.length > 0 ?
+          transactions.map(t => `
+            <tr>
+              <td>${t.transaction_type}</td>
+              <td>${t.stock.symbol}</td>
+              <td>${t.quantity}</td>
+              <td>₹${t.price_at_execution}</td>
+              <td>${new Date(t.timestamp).toLocaleString()}</td>
+            </tr>
+          `).join('') : `<tr><td colspan="5" class="text-center">No recent trades</td></tr>`;
+      } else {
+        document.getElementById('transactions').innerHTML = `<tr><td colspan="5" class="text-danger text-center">Failed to load transactions.</td></tr>`;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  document.getElementById('trade-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const form = e.target;
+    const symbol = form.symbol.value.toUpperCase();
+    const selectedStock = stockList.find(s => s.symbol === symbol);
+    const msgEl = document.getElementById('message');
+
+    if (!selectedStock) {
+      msgEl.innerText = "❌ Error: Stock not found!";
+      msgEl.style.color = "red";
+      return;
+    }
+
+    const data = {
+      stock_id: selectedStock.id,
+      quantity: form.quantity.value,
+      transaction_type: form.transaction_type.value
+    };
+
+    try {
+      const res = await fetch('/api/transactions/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        msgEl.innerText = "✅ Trade executed successfully!";
+        msgEl.style.color = "green";
+        form.reset();
+        fetchData();
+      } else {
+        const error = await res.json();
+        msgEl.innerText = "❌ Error: " + (error.detail || JSON.stringify(error));
+        msgEl.style.color = "red";
+      }
+    } catch (err) {
+      msgEl.innerText = "❌ Network error. Please try again.";
+      msgEl.style.color = "red";
+      console.error(err);
+    }
+  });
+
+  fetchData();
+  setInterval(fetchData, 30000); // Refresh every 30s
 </script>
 
 </body>

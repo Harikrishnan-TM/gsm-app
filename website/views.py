@@ -10,6 +10,27 @@ from stocks.models import UserPortfolio
 
 
 
+from django.contrib import messages
+
+from website.models import MonthlyTournamentEntry
+from website.models import UserProfile  # Adjust if path is different
+
+
+
+
+from django.shortcuts import redirect
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -42,22 +63,27 @@ logger = logging.getLogger(__name__)
 
 def home(request):
     profile = None
+    is_trading_locked = True  # Default to locked if unauthenticated or profile not found
+
     try:
         if request.user.is_authenticated:
             try:
                 profile = UserProfile.objects.get(user=request.user)
+                is_trading_locked = profile.is_trading_locked  # ✅ Extract trading lock status
             except UserProfile.DoesNotExist:
                 logger.warning(f"UserProfile not found for user {request.user.username}")
-                profile = None  # Or create one if needed
     except Exception as e:
         logger.exception("Unexpected error in home view")
-        # Optional: add a user-visible error message if desired
         return render(request, 'website/home.html', {
             'profile': None,
-            'error': 'An unexpected error occurred. Our team has been notified.'
+            'error': 'An unexpected error occurred. Our team has been notified.',
+            'is_trading_locked': True  # show locked state if error occurs
         })
 
-    return render(request, 'website/home.html', {'profile': profile})
+    return render(request, 'website/home.html', {
+        'profile': profile,
+        'is_trading_locked': is_trading_locked  # ✅ Now available to template
+    })
 
 
 
@@ -110,30 +136,52 @@ def profile_view(request):
 
 
 
+
+
+
+
 @login_required
 def join_tournament(request):
     now = timezone.now()
-    month = now.month
-    year = now.year
 
+    # Round to nearest 10-minute block
+    rounded_minute = (now.minute // 10) * 10
+    start_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
+    tournament_key = f"{now.date()}-{rounded_minute:02d}"
+
+    # Check if already joined
     already_joined = MonthlyTournamentEntry.objects.filter(
         user=request.user,
-        month=month,
-        year=year
+        tournament_key=tournament_key
     ).exists()
 
     if already_joined:
-        messages.warning(request, "You have already joined this month's tournament.")
+        messages.warning(request, "⚠️ You’ve already joined this tournament round.")
     else:
+        # Reset balance and lock trading
+        profile = UserProfile.objects.get(user=request.user)
+        profile.balance = 10000
+        profile.is_trading_locked = True
+        profile.save()
+
+        # Clear existing portfolio
+        UserPortfolio.objects.filter(user=request.user).delete()
+
+        # Create tournament entry
         MonthlyTournamentEntry.objects.create(
             user=request.user,
-            month=month,
-            year=year,
-            starting_balance=request.user.userprofile.balance  # store balance at join time
+            tournament_key=tournament_key,
+            start_time=start_time,
+            starting_balance=profile.balance
         )
-        messages.success(request, "✅ You have successfully joined the tournament!")
 
-    return redirect('home')  # or wherever your home view is named
+        messages.success(request, "✅ Successfully joined tournament! Game will begin shortly.")
+
+    return redirect('home')
+
+
+
+
 
 
 
@@ -144,33 +192,45 @@ logger = logging.getLogger(__name__)
 
 def leaderboard_api(request):
     try:
+        now = timezone.now()
+
+        # Round down to current 10-min block
+        rounded_minute = (now.minute // 10) * 10
+        tournament_key = f"{now.date()}-{rounded_minute:02d}"
+
+        # If leaderboard not finalized yet, check previous block
+        entries = MonthlyTournamentEntry.objects.filter(
+            tournament_key=tournament_key,
+            final_score__isnull=False
+        )
+
+        if not entries.exists():
+            # Fallback to last completed tournament block
+            fallback_minute = rounded_minute - 10
+            if fallback_minute < 0:
+                fallback_minute += 60
+                now = now - timezone.timedelta(hours=1)
+            tournament_key = f"{now.date()}-{fallback_minute:02d}"
+            entries = MonthlyTournamentEntry.objects.filter(
+                tournament_key=tournament_key,
+                final_score__isnull=False
+            )
+
         leaderboard = []
-        users = User.objects.all()
 
-        for user in users:
-            user_portfolio = UserPortfolio.objects.filter(user=user)
-
-            total_value = 0
-            total_cost = 0
-
-            for holding in user_portfolio:
-                # Convert Decimal to float for safe arithmetic
-                current_price = float(holding.stock.current_price)
-                total_value += current_price * holding.quantity
-                total_cost += holding.average_price * holding.quantity
-
+        for entry in entries:
             leaderboard.append({
-                'username': user.username,
-                'portfolio_value': round(total_value, 2),
-                'total_profit': round(total_value - total_cost, 2),
+                'username': entry.user.username,
+                'final_score': float(entry.final_score),
             })
 
-        leaderboard_sorted = sorted(leaderboard, key=lambda x: x['portfolio_value'], reverse=True)
+        leaderboard_sorted = sorted(leaderboard, key=lambda x: x['final_score'], reverse=True)
         return JsonResponse(leaderboard_sorted, safe=False)
 
     except Exception as e:
         logger.error("Error in leaderboard_api: %s", e, exc_info=True)
         return JsonResponse({'error': 'Internal server error'}, status=500)
+
 
 
 

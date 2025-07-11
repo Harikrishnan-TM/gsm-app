@@ -26,3 +26,10 @@ simulator = "python manage.py simulate_market_loop"  # Background simulation
 
 [deploy]
   release_command = "python manage.py migrate"
+
+
+
+[[cron]]
+schedule = "*/10 * * * *"
+command = "python manage.py unlock_trading"
+command = "python manage.py end_tournament"

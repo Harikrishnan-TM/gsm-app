@@ -13,6 +13,7 @@ from django.utils import timezone
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     balance = models.FloatField(default=10000.0)  # starting ₹10,000
+    is_trading_locked = models.BooleanField(default=True)  # ✅ Add this line
 
     def __str__(self):
         return f"{self.user.username}'s Profile - ₹{self.balance}"
@@ -29,7 +30,10 @@ class MonthlyTournamentEntry(models.Model):
     year = models.IntegerField()
     joined_on = models.DateTimeField(auto_now_add=True)
     starting_balance = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
+    tournament_key = models.CharField(max_length=50)  # ✅ Add this line
     active = models.BooleanField(default=True)
+    final_score = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
 
     class Meta:
         unique_together = ('user', 'month', 'year')
@@ -37,3 +41,7 @@ class MonthlyTournamentEntry(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.month}/{self.year}"
+
+
+
+

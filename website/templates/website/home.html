@@ -85,30 +85,34 @@
         <div class="card shadow-sm">
           <div class="card-header">💸 <strong>Buy/Sell Stock</strong></div>
           <div class="card-body">
-            <form id="trade-form">
-              {% csrf_token %}
-              <div class="row g-2 align-items-end">
-                <div class="col-md-4">
-                  <label class="form-label">Stock Ticker</label>
-                  <input type="text" name="symbol" class="form-control" required>
+            {% if is_trading_locked %}
+              <div class="alert alert-info mb-0">🔒 Trading is currently <strong>locked</strong>. Please wait until it is unlocked.</div>
+            {% else %}
+              <form id="trade-form">
+                {% csrf_token %}
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-4">
+                    <label class="form-label">Stock Ticker</label>
+                    <input type="text" name="symbol" class="form-control" required>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" name="quantity" class="form-control" required>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Action</label>
+                    <select name="transaction_type" class="form-select">
+                      <option value="BUY">BUY</option>
+                      <option value="SELL">SELL</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <button class="btn btn-success w-100" type="submit">Execute Trade</button>
+                  </div>
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label">Quantity</label>
-                  <input type="number" name="quantity" class="form-control" required>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Action</label>
-                  <select name="transaction_type" class="form-select">
-                    <option value="BUY">BUY</option>
-                    <option value="SELL">SELL</option>
-                  </select>
-                </div>
-                <div class="col-md-3">
-                  <button class="btn btn-success w-100" type="submit">Execute Trade</button>
-                </div>
-              </div>
-            </form>
-            <p id="message" class="mt-3 fw-semibold"></p>
+              </form>
+              <p id="message" class="mt-3 fw-semibold"></p>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -122,21 +126,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Uncomment below when needed -->
-      {#
-      <div class="col-md-12 mb-4">
-        <div class="card shadow-sm">
-          <div class="card-header">📅 <strong>Monthly Tournament</strong></div>
-          <div class="card-body">
-            <form method="post" action="{% url 'join_tournament' %}">
-              {% csrf_token %}
-              <button class="btn btn-warning" type="submit">Join Monthly Tournament</button>
-            </form>
-          </div>
-        </div>
-      </div>
-      #}
     </div>
 
   {% else %}
@@ -150,7 +139,7 @@
   {% endif %}
 </div>
 
-<!-- JS: Fetch data -->
+<!-- JavaScript Section -->
 <script>
   const csrftoken = '{{ csrf_token }}';
   let stockList = [];
@@ -290,55 +279,58 @@
     }
   }
 
-  document.getElementById('trade-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const form = e.target;
-    const symbol = form.symbol.value.toUpperCase();
-    const selectedStock = stockList.find(s => s.symbol === symbol);
-    const msgEl = document.getElementById('message');
+  const tradeForm = document.getElementById('trade-form');
+  if (tradeForm) {
+    tradeForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const symbol = form.symbol.value.toUpperCase();
+      const selectedStock = stockList.find(s => s.symbol === symbol);
+      const msgEl = document.getElementById('message');
 
-    if (!selectedStock) {
-      msgEl.innerText = "❌ Error: Stock not found!";
-      msgEl.style.color = "red";
-      return;
-    }
-
-    const data = {
-      stock_id: selectedStock.id,
-      quantity: form.quantity.value,
-      transaction_type: form.transaction_type.value
-    };
-
-    try {
-      const res = await fetch('/api/transactions/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrftoken
-        },
-        credentials: 'include',
-        body: JSON.stringify(data)
-      });
-
-      if (res.ok) {
-        msgEl.innerText = "✅ Trade executed successfully!";
-        msgEl.style.color = "green";
-        form.reset();
-        fetchData();
-      } else {
-        const error = await res.json();
-        msgEl.innerText = "❌ Error: " + (error.detail || JSON.stringify(error));
+      if (!selectedStock) {
+        msgEl.innerText = "❌ Error: Stock not found!";
         msgEl.style.color = "red";
+        return;
       }
-    } catch (err) {
-      msgEl.innerText = "❌ Network error. Please try again.";
-      msgEl.style.color = "red";
-      console.error(err);
-    }
-  });
+
+      const data = {
+        stock_id: selectedStock.id,
+        quantity: form.quantity.value,
+        transaction_type: form.transaction_type.value
+      };
+
+      try {
+        const res = await fetch('/api/transactions/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+          },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+          msgEl.innerText = "✅ Trade executed successfully!";
+          msgEl.style.color = "green";
+          form.reset();
+          fetchData();
+        } else {
+          const error = await res.json();
+          msgEl.innerText = "❌ Error: " + (error.detail || JSON.stringify(error));
+          msgEl.style.color = "red";
+        }
+      } catch (err) {
+        msgEl.innerText = "❌ Network error. Please try again.";
+        msgEl.style.color = "red";
+        console.error(err);
+      }
+    });
+  }
 
   fetchData();
-  setInterval(fetchData, 30000); // Refresh every 30s
+  setInterval(fetchData, 30000);
 </script>
 
 </body>

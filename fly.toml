@@ -32,4 +32,7 @@ simulator = "python manage.py simulate_market_loop"  # Background simulation
 [[cron]]
 schedule = "*/10 * * * *"
 command = "python manage.py unlock_trading"
+
+[[cron]]
+schedule = "*/10 * * * *"
 command = "python manage.py end_tournament"

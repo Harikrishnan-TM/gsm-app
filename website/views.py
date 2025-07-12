@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth.models import User
 from stocks.models import UserPortfolio
 
-from .models import GameState
+
 
 
 from .models import MonthlyTournamentEntry, UserProfile

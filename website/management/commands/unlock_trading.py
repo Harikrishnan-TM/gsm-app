@@ -22,7 +22,7 @@ class Command(BaseCommand):
             f"{previous_block.date()}-{previous_block.minute:02d}"
         ]
 
-        self.stdout.write(f"⏰ Time now: {now}")
+        self.stdout.write(f"\n===== ⏰ Cron Triggered at {now} =====")
         self.stdout.write(f"🔑 Checking tournament keys: {keys_to_check}")
 
         entries = MonthlyTournamentEntry.objects.filter(tournament_key__in=keys_to_check)
@@ -31,12 +31,16 @@ class Command(BaseCommand):
             self.stdout.write("⚠️ No entries found to unlock.")
             return
 
+        unlocked = 0
         for entry in entries:
             try:
                 profile = UserProfile.objects.get(user=entry.user)
                 if profile.is_trading_locked:
                     profile.is_trading_locked = False
                     profile.save()
+                    unlocked += 1
                     self.stdout.write(f"✅ Trading unlocked for {entry.user.username}")
             except UserProfile.DoesNotExist:
                 self.stdout.write(f"❌ UserProfile not found for user {entry.user.username}")
+
+        self.stdout.write(f"🏁 Done. Total unlocked: {unlocked}\n")

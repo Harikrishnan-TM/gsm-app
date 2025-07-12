@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for gsm-backend on 2025-07-06T13:21:34-07:00
+# fly.toml app configuration file generated for gsm-backend
 
 app = "gsm-backend"
 primary_region = "bom"
@@ -17,16 +17,16 @@ primary_region = "bom"
   cpus = 1
 
 [processes]
-app = "gunicorn core.wsgi"
-simulator = "python manage.py simulate_market_loop"
+  app = "gunicorn core.wsgi"
+  simulator = "python manage.py simulate_market_loop"
 
 [deploy]
   release_command = "python manage.py migrate"
 
 [[cron]]
-schedule = "*/10 * * * *"
-command = "python manage.py unlock_trading"
+  schedule = "*/10 * * * *"
+  command = "python manage.py unlock_trading"
 
 [[cron]]
-schedule = "*/10 * * * *"
-command = "python manage.py end_tournament"
+  schedule = "*/10 * * * *"
+  command = "python manage.py end_tournament"

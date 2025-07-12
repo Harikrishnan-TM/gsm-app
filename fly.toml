@@ -30,3 +30,4 @@ primary_region = "bom"
 [[cron]]
   schedule = "*/10 * * * *"
   command = "python manage.py end_tournament"
+

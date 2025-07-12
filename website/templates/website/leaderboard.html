@@ -12,6 +12,8 @@
       <a href="{% url 'home' %}" class="btn btn-outline-primary">← Back to Home</a>
     </div>
 
+    <p class="text-muted small" id="last-updated">Last updated: --</p>
+
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <table class="table table-striped mb-0">
@@ -23,7 +25,13 @@
             </tr>
           </thead>
           <tbody id="leaderboard-body">
-            <tr><td colspan="3" class="text-center">Loading...</td></tr>
+            <tr>
+              <td colspan="3" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -36,20 +44,21 @@
         const res = await fetch('/api/leaderboard/', { credentials: 'include' });
         const data = await res.json();
 
+        const tbody = document.getElementById('leaderboard-body');
+
         if (res.ok && Array.isArray(data)) {
-          const tbody = document.getElementById('leaderboard-body');
-          tbody.innerHTML = data.map((user, index) => {
-            return `
-              <tr>
-                <td>#${index + 1}</td>
-                <td>${user.username}</td>
-                <td>₹${user.final_score.toFixed(2)}</td>
-              </tr>
-            `;
-          }).join('');
+          tbody.innerHTML = data.map((user, index) => `
+            <tr>
+              <td>#${index + 1}</td>
+              <td>${user.username}</td>
+              <td>₹${user.final_score.toFixed(2)}</td>
+            </tr>
+          `).join('');
+
+          document.getElementById('last-updated').textContent =
+            'Last updated: ' + new Date().toLocaleTimeString();
         } else {
-          document.getElementById('leaderboard-body').innerHTML =
-            '<tr><td colspan="3" class="text-center text-danger">Failed to load leaderboard.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Failed to load leaderboard.</td></tr>';
         }
       } catch (err) {
         console.error(err);
@@ -58,7 +67,11 @@
       }
     }
 
+    // Initial load
     loadLeaderboard();
+
+    // Refresh every 10 minutes
+    setInterval(loadLeaderboard, 10 * 60 * 1000);
   </script>
 </body>
 </html>

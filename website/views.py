@@ -217,37 +217,37 @@ logger = logging.getLogger(__name__)
 
 def leaderboard_api(request):
     try:
-        now = timezone.now()
+        now = timezone.now().replace(second=0, microsecond=0)
 
         # Round down to current 10-min block
         rounded_minute = (now.minute // 10) * 10
-        tournament_key = f"{now.date()}-{rounded_minute:02d}"
+        tournament_key = f"{now.strftime('%Y-%m-%d')}-{rounded_minute:02d}"
 
-        # If leaderboard not finalized yet, check previous block
+        # Fetch leaderboard entries
         entries = MonthlyTournamentEntry.objects.filter(
             tournament_key=tournament_key,
             final_score__isnull=False
         )
 
+        # Fallback to previous 10-min block if empty
         if not entries.exists():
-            # Fallback to last completed tournament block
             fallback_minute = rounded_minute - 10
             if fallback_minute < 0:
-                fallback_minute += 60
-                now = now - timezone.timedelta(hours=1)
-            tournament_key = f"{now.date()}-{fallback_minute:02d}"
+                now -= timezone.timedelta(hours=1)
+                fallback_minute = 50  # Wrap to last 10-min block of previous hour
+            tournament_key = f"{now.strftime('%Y-%m-%d')}-{fallback_minute:02d}"
             entries = MonthlyTournamentEntry.objects.filter(
                 tournament_key=tournament_key,
                 final_score__isnull=False
             )
 
-        leaderboard = []
-
-        for entry in entries:
-            leaderboard.append({
+        leaderboard = [
+            {
                 'username': entry.user.username,
                 'final_score': float(entry.final_score),
-            })
+            }
+            for entry in entries
+        ]
 
         leaderboard_sorted = sorted(leaderboard, key=lambda x: x['final_score'], reverse=True)
         return JsonResponse(leaderboard_sorted, safe=False)

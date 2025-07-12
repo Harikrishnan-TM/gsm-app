@@ -1,14 +1,12 @@
-# fly.toml app configuration file generated for gsm-backend
-
 app = "gsm-backend"
 primary_region = "bom"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = false
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
 [[vm]]
@@ -17,8 +15,8 @@ primary_region = "bom"
   cpus = 1
 
 [processes]
-  app = "gunicorn core.wsgi"
-  simulator = "python manage.py simulate_market_loop"
+app = "gunicorn core.wsgi"
+simulator = "python manage.py simulate_market_loop"
 
 [deploy]
   release_command = "python manage.py migrate"
@@ -30,4 +28,3 @@ primary_region = "bom"
 [[cron]]
   schedule = "*/10 * * * *"
   command = "python manage.py end_tournament"
-

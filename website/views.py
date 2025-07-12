@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 def home(request):
     profile = None
-    is_trading_locked = True  # Default to locked if unauthenticated or profile not found
+    is_trading_locked = False  # Default to locked if unauthenticated or profile not found
 
     try:
         if request.user.is_authenticated:

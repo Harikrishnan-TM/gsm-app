@@ -8,6 +8,12 @@ from django.http import JsonResponse
 from django.contrib.auth.models import User
 from stocks.models import UserPortfolio
 
+from .models import GameState
+
+
+from .models import MonthlyTournamentEntry, UserProfile
+
+
 
 
 
@@ -67,26 +73,41 @@ logger = logging.getLogger(__name__)
 
 def home(request):
     profile = None
-    is_trading_locked = False  # Default to locked if unauthenticated or profile not found
+    is_trading_locked = False
+    has_joined_tournament = False  # ✅ Default to False
 
     try:
         if request.user.is_authenticated:
             try:
                 profile = UserProfile.objects.get(user=request.user)
-                is_trading_locked = profile.is_trading_locked  # ✅ Extract trading lock status
+                is_trading_locked = profile.is_trading_locked
+
+                # ✅ Tournament check logic
+                now = timezone.now()
+                rounded_minute = (now.minute // 10) * 10
+                tournament_key = f"{now.date()}-{rounded_minute:02d}"
+
+                has_joined_tournament = MonthlyTournamentEntry.objects.filter(
+                    user=request.user,
+                    tournament_key=tournament_key
+                ).exists()
+
             except UserProfile.DoesNotExist:
                 logger.warning(f"UserProfile not found for user {request.user.username}")
+
     except Exception as e:
         logger.exception("Unexpected error in home view")
         return render(request, 'website/home.html', {
             'profile': None,
             'error': 'An unexpected error occurred. Our team has been notified.',
-            'is_trading_locked': True  # show locked state if error occurs
+            'is_trading_locked': True,
+            'has_joined_tournament': True  # Assume joined to hide button if error occurs
         })
 
     return render(request, 'website/home.html', {
         'profile': profile,
-        'is_trading_locked': is_trading_locked  # ✅ Now available to template
+        'is_trading_locked': is_trading_locked,
+        'has_joined_tournament': has_joined_tournament  # ✅ Send to template
     })
 
 

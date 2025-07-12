@@ -169,48 +169,41 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def join_tournament(request):
-    try:
-        now = timezone.now()
+    now = timezone.now()
 
-        # Round to nearest 10-minute block
-        rounded_minute = (now.minute // 10) * 10
-        start_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
-        tournament_key = f"{now.date()}-{rounded_minute:02d}"
+    # Round to nearest 10-minute block
+    rounded_minute = (now.minute // 10) * 10
+    start_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
+    tournament_key = f"{now.date()}-{rounded_minute:02d}"
 
-        # Check if already joined
-        already_joined = MonthlyTournamentEntry.objects.filter(
+    already_joined = MonthlyTournamentEntry.objects.filter(
+        user=request.user,
+        tournament_key=tournament_key
+    ).exists()
+
+    if already_joined:
+        messages.warning(request, "⚠️ You’ve already joined this tournament round.")
+    else:
+        profile = UserProfile.objects.get(user=request.user)
+        profile.balance = 10000
+        profile.is_trading_locked = True
+        profile.save()
+
+        UserPortfolio.objects.filter(user=request.user).delete()
+
+        # ✅ Add month and year fields here
+        MonthlyTournamentEntry.objects.create(
             user=request.user,
-            tournament_key=tournament_key
-        ).exists()
+            tournament_key=tournament_key,
+            start_time=start_time,
+            month=now.month,
+            year=now.year,
+            starting_balance=profile.balance
+        )
 
-        if already_joined:
-            messages.warning(request, "⚠️ You’ve already joined this tournament round.")
-        else:
-            # Reset balance and lock trading
-            profile = UserProfile.objects.get(user=request.user)
-            profile.balance = 10000
-            profile.is_trading_locked = True
-            profile.save()
-
-            # Clear existing portfolio
-            UserPortfolio.objects.filter(user=request.user).delete()
-
-            # Create tournament entry
-            MonthlyTournamentEntry.objects.create(
-                user=request.user,
-                tournament_key=tournament_key,
-                start_time=start_time,
-                starting_balance=profile.balance
-            )
-
-            messages.success(request, "✅ Successfully joined tournament! Game will begin shortly.")
-
-    except Exception as e:
-        logger.error("Error in join_tournament view: %s", e, exc_info=True)
-        messages.error(request, "❌ An error occurred while joining the tournament. Please try again later.")
+        messages.success(request, "✅ Successfully joined tournament! Game will begin shortly.")
 
     return redirect('home')
-
 
 
 

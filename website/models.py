@@ -31,6 +31,7 @@ class MonthlyTournamentEntry(models.Model):
     joined_on = models.DateTimeField(auto_now_add=True)
     starting_balance = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
     tournament_key = models.CharField(max_length=50)  # e.g., '2025-07-11-10'
+    start_time = models.DateTimeField(null=True, blank=True)  # ✅ Add this
     active = models.BooleanField(default=True)
     final_score = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 

@@ -18,16 +18,9 @@ primary_region = "bom"
 app = "gunicorn core.wsgi"
 simulator = "python manage.py simulate_market_loop"
 cron = "sleep infinity"
+worker = "celery -A core worker -l info"
+beat = "celery -A core beat -l info"
 
 [deploy]
   release_command = "python manage.py migrate"
 
-[[cron]]
-  schedule = "*/10 * * * *"
-  command = "python manage.py unlock_trading"
-  processes = ["cron"]
-
-[[cron]]
-  schedule = "*/10 * * * *"
-  command = "python manage.py end_tournament"
-  processes = ["cron"]

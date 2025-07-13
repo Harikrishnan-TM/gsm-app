@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'website',
     'api',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -204,3 +205,12 @@ SIMPLE_JWT = {
 CSRF_TRUSTED_ORIGINS = [
     "https://gsm-backend.fly.dev",
 ]
+
+
+
+
+# CELERY CONFIGURATION
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

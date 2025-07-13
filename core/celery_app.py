@@ -3,9 +3,9 @@ import os
 from celery import Celery
 
 # Set default Django settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gsm_backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
-app = Celery('gsm_backend')
+app = Celery('core')
 
 # Load config from Django settings, using CELERY namespace
 app.config_from_object('django.conf:settings', namespace='CELERY')

@@ -18,8 +18,8 @@ primary_region = "bom"
 app = "gunicorn core.wsgi"
 simulator = "python manage.py simulate_market_loop"
 cron = "sleep infinity"
-worker = "celery -A core.celery_app worker -l info"
-beat = "celery -A core.celery_app beat -l info"
+worker = "celery -A core worker -l info"
+beat = "celery -A core beat -l info"
 
 [deploy]
   release_command = "python manage.py migrate"

@@ -214,3 +214,8 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+
+
+# core/settings.py or gsm_backend/settings.py
+CELERY_BROKER_URL = 'redis://default:AVlAAAIjcDFlZWMyNTFkODIxZGY0Yzc2YTY4OWI0MzY0OWUzMGUzYnAxMA@vocal-gibbon-22848.upstash.io:6379'

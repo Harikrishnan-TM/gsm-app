@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
-from tournament.models import Tournament, TournamentEntry
+#from tournament.models import Tournament, TournamentEntry
+from website.models import Tournament, TournamentEntry
 from core.models import UserProfile  # Adjust if UserProfile is in another app
 
 @shared_task

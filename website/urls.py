@@ -25,6 +25,8 @@ urlpatterns = [
     path('join-tournament/', views.join_tournament, name='join_tournament'),
     path('api/leaderboard/', leaderboard_api, name='leaderboard_api'),
     path('leaderboard/', views.leaderboard_view, name='leaderboard'),
-    path('api/is_trading_locked/', views.get_trading_status, name='get_trading_status')
+    #path('api/is_trading_locked/', views.get_trading_status, name='get_trading_status')
+    path('api/is_trading_locked/', views.is_trading_locked, name='get_trading_status')
+
     # ... other URLs
 ]

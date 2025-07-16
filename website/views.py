@@ -8,6 +8,9 @@ from django.utils import timezone
 from datetime import timedelta
 import logging
 
+from django.db.models import F, Sum, FloatField, ExpressionWrapper
+from .models import Portfolio, UserProfile  # adjust imports as needed
+
 from .models import (
     UserProfile as Profile,
     Tournament,
@@ -17,19 +20,23 @@ from .models import (
 )
 
 
-from django.db.models import F, Sum, FloatField, ExpressionWrapper
+
 
 def get_portfolio_value(user):
     try:
-        cash = UserProfile.objects.get(user=user).balance
+        profile = UserProfile.objects.get(user=user)
+        cash = profile.balance
 
-        holdings_value = Portfolio.objects.filter(user=user).annotate(
+        # Use ExpressionWrapper for arithmetic inside aggregation
+        holdings = Portfolio.objects.filter(user=user).annotate(
             holding_value=ExpressionWrapper(F('quantity') * F('current_price'), output_field=FloatField())
         ).aggregate(
             total=Sum('holding_value')
-        )['total'] or 0
+        )
 
+        holdings_value = holdings['total'] or 0
         return round(cash + holdings_value, 2)
+
     except UserProfile.DoesNotExist:
         return 0
 

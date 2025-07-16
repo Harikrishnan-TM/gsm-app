@@ -175,14 +175,17 @@ def leaderboard_view(request):
 def leaderboard_api(request):
     try:
         latest_tournament = Tournament.objects.order_by('-start_time').first()
-        entries = TournamentEntry.objects.filter(tournament=latest_tournament)
+        entries = TournamentEntry.objects.filter(tournament=latest_tournament).select_related('user', 'user__userprofile')
 
         leaderboard = []
         for entry in entries:
             portfolio_value = get_portfolio_value(entry.user)
+            balance = entry.user.userprofile.balance
+            total_score = float(balance) + float(portfolio_value)
+
             leaderboard.append({
                 'username': entry.user.username,
-                'final_score': float(portfolio_value),
+                'final_score': total_score,
             })
 
         leaderboard_sorted = sorted(leaderboard, key=lambda x: x['final_score'], reverse=True)

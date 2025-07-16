@@ -172,6 +172,8 @@ def leaderboard_view(request):
     return render(request, 'website/leaderboard.html', {'leaderboard': leaderboard})
 
 
+
+
 def leaderboard_api(request):
     try:
         latest_tournament = Tournament.objects.order_by('-start_time').first()
@@ -179,9 +181,7 @@ def leaderboard_api(request):
 
         leaderboard = []
         for entry in entries:
-            portfolio_value = get_portfolio_value(entry.user)
-            balance = entry.user.userprofile.balance
-            total_score = float(balance) + float(portfolio_value)
+            total_score = get_portfolio_value(entry.user)  # already includes balance + holdings
 
             leaderboard.append({
                 'username': entry.user.username,

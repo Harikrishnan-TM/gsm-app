@@ -28,21 +28,20 @@ from .models import (
 
 
 
-def get_portfolio_value(user):
+def get_portfolio_value(user, tournament):
     try:
-        # Only calculate portfolio (stock holdings) value
-        holdings = Portfolio.objects.filter(user=user).annotate(
+        profile = UserProfile.objects.get(user=user)
+        cash = profile.balance
+
+        holdings = Portfolio.objects.filter(user=user, tournament=tournament).annotate(
             holding_value=ExpressionWrapper(F('quantity') * F('current_price'), output_field=FloatField())
-        ).aggregate(
-            total=Sum('holding_value')
-        )
+        ).aggregate(total=Sum('holding_value'))
 
         holdings_value = holdings['total'] or 0
-        return round(holdings_value, 2)
-
-    except Exception as e:
-        logger.error("Error in get_portfolio_value: %s", e, exc_info=True)
+        return round(cash + holdings_value, 2)
+    except UserProfile.DoesNotExist:
         return 0
+
 
 
 
@@ -216,7 +215,8 @@ def leaderboard_api(request):
                 balance = profile.balance
 
                 # Get portfolio value
-                portfolio_value = get_portfolio_value(user)
+                #portfolio_value = get_portfolio_value(user)
+                portfolio_value = get_portfolio_value(user, latest_tournament)
 
                 # Final score = balance + portfolio value
                 total_score = balance + portfolio_value

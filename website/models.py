@@ -40,6 +40,7 @@ class TournamentEntry(models.Model):
 
 class Portfolio(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)  # 🔥 Add this
     symbol = models.CharField(max_length=10)
     quantity = models.IntegerField()
     average_price = models.FloatField()

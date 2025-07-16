@@ -151,7 +151,7 @@
 
 <!-- Scripts -->
 <script>
-  const csrftoken = '{{ csrf_token }}';
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
   let stockList = [];
   let nextUnlockTimestamp = null;
 
@@ -163,7 +163,7 @@
         fetch('/api/transactions/', { credentials: 'include' })
       ]);
 
-           if (stocksRes.status === 'fulfilled' && stocksRes.value.ok) {
+      if (stocksRes.status === 'fulfilled' && stocksRes.value.ok) {
         const stocks = await stocksRes.value.json();
         stockList = stocks;
         document.getElementById('stocks').innerHTML = stocks.map(s => `
@@ -346,7 +346,7 @@
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       const symbol = form.symbol.value.toUpperCase();
-      const selectedStock = stockList.find(s => s.stock.symbol === symbol);
+      const selectedStock = stockList.find(s => s.symbol === symbol); // ✅ FIXED LINE
       const msgEl = document.getElementById('message');
 
       if (!selectedStock) {
@@ -356,7 +356,7 @@
       }
 
       const data = {
-        stock_id: selectedStock.stock.id,
+        stock_id: selectedStock.id, // ✅ FIXED LINE
         quantity: form.quantity.value,
         transaction_type: form.transaction_type.value
       };

@@ -8,6 +8,10 @@ from django.utils import timezone
 from datetime import timedelta
 import logging
 
+
+from django.db.models import Sum
+
+
 from django.db.models import F, Sum, FloatField, ExpressionWrapper
 from .models import Portfolio, UserProfile  # adjust imports as needed
 
@@ -186,26 +190,48 @@ def leaderboard_view(request):
 
 
 
+
+
+logger = logging.getLogger(__name__)
+
 def leaderboard_api(request):
     try:
         latest_tournament = Tournament.objects.order_by('-start_time').first()
         if not latest_tournament:
             return JsonResponse([], safe=False)
 
-        entries = TournamentEntry.objects.filter(tournament=latest_tournament).select_related('user', 'user__userprofile')
+        entries = TournamentEntry.objects.filter(
+            tournament=latest_tournament
+        ).select_related('user', 'user__userprofile')
 
         leaderboard = []
+
         for entry in entries:
             try:
-                total_score = get_portfolio_value(entry.user)
+                user = entry.user
+                profile = user.userprofile
+
+                # Get balance from user profile
+                balance = profile.balance
+
+                # Get portfolio value
+                portfolio_value = get_portfolio_value(user)
+
+                # Final score = balance + portfolio value
+                total_score = balance + portfolio_value
+
                 leaderboard.append({
-                    'username': entry.user.username,
-                    'final_score': total_score,
+                    'username': user.username,
+                    'balance': round(balance, 2),
+                    'portfolio_value': round(portfolio_value, 2),
+                    'final_score': round(total_score, 2),
                 })
+
             except Exception as inner_e:
-                logger.error("Error processing user %s: %s", entry.user.username, inner_e, exc_info=True)
+                logger.error("Error processing user %s: %s", user.username, inner_e, exc_info=True)
 
         leaderboard_sorted = sorted(leaderboard, key=lambda x: x['final_score'], reverse=True)
+
         return JsonResponse(leaderboard_sorted, safe=False)
 
     except Exception as e:

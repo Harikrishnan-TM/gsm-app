@@ -17,18 +17,22 @@ from .models import (
 )
 
 
-from django.db.models import F, Sum
+from django.db.models import F, Sum, FloatField, ExpressionWrapper
 
 def get_portfolio_value(user):
     try:
-        #cash = Profile.objects.get(user=user).balance
-        cash = UserProfile.objects.get(user=user).balance  # not Profile
-        holdings_value = Portfolio.objects.filter(user=user).aggregate(
-            total=Sum(F('quantity') * F('current_price'))
+        cash = UserProfile.objects.get(user=user).balance
+
+        holdings_value = Portfolio.objects.filter(user=user).annotate(
+            holding_value=ExpressionWrapper(F('quantity') * F('current_price'), output_field=FloatField())
+        ).aggregate(
+            total=Sum('holding_value')
         )['total'] or 0
+
         return round(cash + holdings_value, 2)
-    except Profile.DoesNotExist:
+    except UserProfile.DoesNotExist:
         return 0
+
 
 
 
@@ -178,16 +182,21 @@ def leaderboard_view(request):
 def leaderboard_api(request):
     try:
         latest_tournament = Tournament.objects.order_by('-start_time').first()
+        if not latest_tournament:
+            return JsonResponse([], safe=False)
+
         entries = TournamentEntry.objects.filter(tournament=latest_tournament).select_related('user', 'user__userprofile')
 
         leaderboard = []
         for entry in entries:
-            total_score = get_portfolio_value(entry.user)  # already includes balance + holdings
-
-            leaderboard.append({
-                'username': entry.user.username,
-                'final_score': total_score,
-            })
+            try:
+                total_score = get_portfolio_value(entry.user)
+                leaderboard.append({
+                    'username': entry.user.username,
+                    'final_score': total_score,
+                })
+            except Exception as inner_e:
+                logger.error("Error processing user %s: %s", entry.user.username, inner_e, exc_info=True)
 
         leaderboard_sorted = sorted(leaderboard, key=lambda x: x['final_score'], reverse=True)
         return JsonResponse(leaderboard_sorted, safe=False)
@@ -195,3 +204,4 @@ def leaderboard_api(request):
     except Exception as e:
         logger.error("Error in leaderboard_api: %s", e, exc_info=True)
         return JsonResponse({'error': 'Internal server error'}, status=500)
+

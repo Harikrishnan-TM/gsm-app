@@ -23,12 +23,12 @@
       <div>
         <h2>Welcome, {{ user.username }} 👋</h2>
         {% if not has_joined_tournament %}
-        <form method="post" action="{% url 'join_tournament' %}" class="mb-3">
-        {% csrf_token %}
-        <button class="btn btn-warning">🏁 Join Tournament</button>
-        </form>
+          <form method="post" action="{% url 'join_tournament' %}" class="mb-3">
+            {% csrf_token %}
+            <button class="btn btn-warning">🏁 Join Tournament</button>
+          </form>
         {% else %}
-        <p class="text-muted">✅ You’ve joined the current tournament round.</p>
+          <p class="text-muted">✅ You’ve joined the current tournament round.</p>
         {% endif %}
         {% if profile %}
           <p class="mb-0 fw-semibold text-muted">💰 Balance: ₹{{ profile.balance }}</p>
@@ -41,6 +41,7 @@
     </div>
 
     <div class="row">
+      <!-- Stocks -->
       <div class="col-md-6 mb-4">
         <div class="card shadow-sm">
           <div class="card-header d-flex justify-content-between">
@@ -53,6 +54,7 @@
         </div>
       </div>
 
+      <!-- Portfolio -->
       <div class="col-md-6 mb-4">
         <div class="card shadow-sm">
           <div class="card-header">💼 <strong>Your Portfolio</strong></div>
@@ -62,6 +64,7 @@
         </div>
       </div>
 
+      <!-- Transactions -->
       <div class="col-md-12 mb-4">
         <div class="card shadow-sm">
           <div class="card-header">🧾 <strong>Recent Transactions</strong></div>
@@ -84,6 +87,7 @@
         </div>
       </div>
 
+      <!-- Trade -->
       <div class="col-md-12 mb-4">
         <div class="card shadow-sm">
           <div class="card-header">💸 <strong>Buy/Sell Stock</strong></div>
@@ -123,6 +127,7 @@
         </div>
       </div>
 
+      <!-- Leaderboard -->
       <div class="col-md-12 mb-4">
         <div class="card shadow-sm">
           <div class="card-header">🏆 <strong>Leaderboard</strong></div>
@@ -144,6 +149,7 @@
   {% endif %}
 </div>
 
+<!-- Scripts -->
 <script>
   const csrftoken = '{{ csrf_token }}';
   let stockList = [];
@@ -157,7 +163,46 @@
         fetch('/api/transactions/', { credentials: 'include' })
       ]);
 
-      // ... same stocks/portfolio/transactions logic (unchanged)
+      // Stocks
+      if (stocksRes.status === 'fulfilled' && stocksRes.value.ok) {
+        const stocks = await stocksRes.value.json();
+        stockList = stocks;
+        const stocksHTML = stocks.map(s => `
+          <div class="d-flex justify-content-between border-bottom py-1">
+            <span><strong>${s.stock.symbol}</strong> - ${s.stock.name}</span>
+            <span>₹${s.current_price}</span>
+          </div>
+        `).join('');
+        document.getElementById('stocks').innerHTML = stocks.length ? stocksHTML : `<p class="text-muted">No stocks available.</p>`;
+      }
+
+      // Portfolio
+      if (portfolioRes.status === 'fulfilled' && portfolioRes.value.ok) {
+        const portfolio = await portfolioRes.value.json();
+        const portfolioHTML = portfolio.map(p => `
+          <div class="d-flex justify-content-between border-bottom py-1">
+            <span><strong>${p.stock.stock.symbol}</strong></span>
+            <span>${p.quantity} shares @ ₹${p.stock.current_price}</span>
+          </div>
+        `).join('');
+        document.getElementById('portfolio').innerHTML = portfolio.length ? portfolioHTML : `<p class="text-muted">No holdings yet.</p>`;
+      }
+
+      // Transactions
+      if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+        const txns = await transactionsRes.value.json();
+        const txnsHTML = txns.map(t => `
+          <tr>
+            <td>${t.transaction_type}</td>
+            <td>${t.stock.stock.symbol}</td>
+            <td>${t.quantity}</td>
+            <td>₹${t.price_at_execution.toFixed(2)}</td>
+            <td>${new Date(t.timestamp).toLocaleString()}</td>
+          </tr>
+        `).join('');
+        document.getElementById('transactions').innerHTML = txns.length ? txnsHTML : `<tr><td colspan="5" class="text-center text-muted">No transactions yet.</td></tr>`;
+      }
+
     } catch (err) {
       console.error(err);
     }
@@ -175,10 +220,11 @@
         nextUnlockTimestamp = data.next_unlock_time ? new Date(data.next_unlock_time) : null;
 
         if (data.is_trading_locked) {
-          section.innerHTML = `<div class="alert alert-info mb-0">
-            🔒 Trading is currently <strong>locked</strong>. Please wait until it is unlocked.
-            <div id="countdown" class="mt-2 text-muted small">🔓 Unlocks in: <span id="timer">--:--</span></div>
-          </div>`;
+          section.innerHTML = `
+            <div class="alert alert-info mb-0">
+              🔒 Trading is currently <strong>locked</strong>. Please wait until it is unlocked.
+              <div id="countdown" class="mt-2 text-muted small">🔓 Unlocks in: <span id="timer">--:--</span></div>
+            </div>`;
         } else if (!document.getElementById('trade-form')) {
           section.innerHTML = `
             <form id="trade-form">
@@ -220,7 +266,7 @@
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       const symbol = form.symbol.value.toUpperCase();
-      const selectedStock = stockList.find(s => s.symbol === symbol);
+      const selectedStock = stockList.find(s => s.stock.symbol === symbol);
       const msgEl = document.getElementById('message');
 
       if (!selectedStock) {
@@ -230,7 +276,7 @@
       }
 
       const data = {
-        stock_id: selectedStock.id,
+        stock_id: selectedStock.stock.id,
         quantity: form.quantity.value,
         transaction_type: form.transaction_type.value
       };

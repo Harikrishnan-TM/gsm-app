@@ -26,12 +26,11 @@ from .models import (
 
 
 
+
+
 def get_portfolio_value(user):
     try:
-        profile = UserProfile.objects.get(user=user)
-        cash = profile.balance
-
-        # Use ExpressionWrapper for arithmetic inside aggregation
+        # Only calculate portfolio (stock holdings) value
         holdings = Portfolio.objects.filter(user=user).annotate(
             holding_value=ExpressionWrapper(F('quantity') * F('current_price'), output_field=FloatField())
         ).aggregate(
@@ -39,10 +38,12 @@ def get_portfolio_value(user):
         )
 
         holdings_value = holdings['total'] or 0
-        return round(cash + holdings_value, 2)
+        return round(holdings_value, 2)
 
-    except UserProfile.DoesNotExist:
+    except Exception as e:
+        logger.error("Error in get_portfolio_value: %s", e, exc_info=True)
         return 0
+
 
 
 

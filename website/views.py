@@ -21,7 +21,8 @@ from django.db.models import F, Sum
 
 def get_portfolio_value(user):
     try:
-        cash = Profile.objects.get(user=user).balance
+        #cash = Profile.objects.get(user=user).balance
+        cash = UserProfile.objects.get(user=user).balance  # not Profile
         holdings_value = Portfolio.objects.filter(user=user).aggregate(
             total=Sum(F('quantity') * F('current_price'))
         )['total'] or 0

@@ -216,7 +216,8 @@ def leaderboard_api(request):
 
                 # Get portfolio value
                 #portfolio_value = get_portfolio_value(user)
-                portfolio_value = get_portfolio_value(user, latest_tournament)
+                #portfolio_value = get_portfolio_value(user, latest_tournament)
+                portfolio_value = get_portfolio_value(entry.user, latest_tournament)
 
                 # Final score = balance + portfolio value
                 total_score = balance + portfolio_value

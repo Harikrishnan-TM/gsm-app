@@ -19,7 +19,7 @@
       {% endfor %}
     {% endif %}
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-4">
       <div>
         <h2>Welcome, {{ user.username }} 👋</h2>
         {% if not has_joined_tournament %}
@@ -31,13 +31,17 @@
           <p class="text-muted">✅ You’ve joined the current tournament round.</p>
         {% endif %}
         {% if profile %}
-          <p class="mb-0 fw-semibold text-muted">💰 Balance: ₹{{ profile.balance }}</p>
+          <p class="mb-0 fw-semibold text-muted">💰 Balance: ₹<span id="balance-value">{{ profile.balance }}</span></p>
         {% endif %}
       </div>
-      <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button class="btn btn-outline-danger" type="submit">Logout</button>
-      </form>
+      <div class="text-end">
+        <p class="mb-1 fw-semibold text-muted">📊 Current Value:</p>
+        <h5 class="fw-bold text-success">₹<span id="current-value">--</span></h5>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="btn btn-outline-danger mt-2" type="submit">Logout</button>
+        </form>
+      </div>
     </div>
 
     <div class="row">
@@ -163,6 +167,7 @@
         fetch('/api/transactions/', { credentials: 'include' })
       ]);
 
+      // STOCKS
       if (stocksRes.status === 'fulfilled' && stocksRes.value.ok) {
         const stocks = await stocksRes.value.json();
         stockList = stocks;
@@ -230,10 +235,12 @@
         document.getElementById('stocks').innerHTML = '<p class="text-danger">Failed to load stocks.</p>';
       }
 
+      // PORTFOLIO
+      let totalValue = 0;
       if (portfolioRes.status === 'fulfilled' && portfolioRes.value.ok) {
         const portfolio = await portfolioRes.value.json();
         if (portfolio.length > 0) {
-          const totalValue = portfolio.reduce((acc, p) => acc + (p.current_price * p.quantity), 0);
+          totalValue = portfolio.reduce((acc, p) => acc + (p.current_price * p.quantity), 0);
           const holdingsHtml = portfolio.map(p => {
             const profit = p.profit_loss;
             const percent = p.percentage_change;
@@ -267,6 +274,13 @@
         document.getElementById('portfolio').innerHTML = '<p class="text-danger">Failed to load portfolio.</p>';
       }
 
+      // CURRENT VALUE
+      const balanceText = document.getElementById('balance-value')?.textContent;
+      const balance = parseFloat(balanceText?.replace(/[^\d.]/g, '') || 0);
+      const currentValue = balance + totalValue;
+      document.getElementById('current-value').innerText = currentValue.toFixed(2);
+
+      // TRANSACTIONS
       if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
         const transactions = await transactionsRes.value.json();
         document.getElementById('transactions').innerHTML = transactions.length > 0 ?
@@ -346,7 +360,7 @@
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       const symbol = form.symbol.value.toUpperCase();
-      const selectedStock = stockList.find(s => s.symbol === symbol); // ✅ FIXED LINE
+      const selectedStock = stockList.find(s => s.symbol === symbol);
       const msgEl = document.getElementById('message');
 
       if (!selectedStock) {
@@ -356,7 +370,7 @@
       }
 
       const data = {
-        stock_id: selectedStock.id, // ✅ FIXED LINE
+        stock_id: selectedStock.id,
         quantity: form.quantity.value,
         transaction_type: form.transaction_type.value
       };

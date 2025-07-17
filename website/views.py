@@ -239,12 +239,19 @@ def leaderboard_api(request):
 
 
 
+#@login_required
+#def leaderboard_page(request):
+#    latest_tournament = Tournament.objects.order_by('-start_time').first()
+
+#    return render(request, 'leaderboard.html', {
+#        'tournament': latest_tournament  # can be None — we handle it in template
+#    })
+
+
 @login_required
 def leaderboard_page(request):
-    latest_tournament = Tournament.objects.order_by('-start_time').first()
-
     return render(request, 'leaderboard.html', {
-        'tournament': latest_tournament  # can be None — we handle it in template
+        'tournament': None  # hardcoded None for safety
     })
 
 

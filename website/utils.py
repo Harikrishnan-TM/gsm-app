@@ -1,18 +1,22 @@
+from decimal import Decimal
+from website.models import UserPortfolio  # adjust this import as needed
 
-from website.models import UserProfile, Portfolio
-
-
-
-
-def get_total_value(user, tournament):
+def get_total_value(user, tournament=None):
     try:
         profile = UserProfile.objects.get(user=user)
-        balance = profile.balance
+        balance = Decimal(profile.balance)
     except UserProfile.DoesNotExist:
-        balance = 0
+        balance = Decimal(0)
 
-    holdings = Portfolio.objects.filter(user=user, tournament=tournament)
-    portfolio_value = sum(h.quantity * h.current_price for h in holdings)
+    # Get all holdings for the user
+    holdings = UserPortfolio.objects.filter(user=user).select_related('stock__stock')
+
+    # Compute portfolio value from live prices
+    portfolio_value = sum(
+        h.quantity * h.stock.current_price
+        for h in holdings
+        if h.stock and h.stock.current_price is not None
+    )
 
     total_value = balance + portfolio_value
-    return balance, portfolio_value, total_value
+    return float(balance), float(portfolio_value), float(total_value)

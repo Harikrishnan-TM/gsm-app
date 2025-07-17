@@ -10,6 +10,9 @@ import logging
 from website.utils import get_total_value
 
 
+from django.http import HttpResponse
+
+
 
 from website.models import Tournament
 
@@ -248,11 +251,23 @@ def leaderboard_api(request):
 #    })
 
 
+
+
+
+
+logger = logging.getLogger(__name__)
+
 @login_required
 def leaderboard_page(request):
-    return render(request, 'leaderboard.html', {
-        'tournament': None  # hardcoded None for safety
-    })
+    try:
+        # Optionally simplify this line if needed
+        latest_tournament = Tournament.objects.order_by('-start_time').first()
+        return render(request, 'leaderboard.html', {
+            'tournament': latest_tournament  # may be None
+        })
+    except Exception as e:
+        logger.exception("⚠️ leaderboard_page crash")
+        return HttpResponse("An error occurred. Please check logs.", status=500)
 
 
 

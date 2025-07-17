@@ -1,3 +1,8 @@
+
+from website.models import UserProfile
+
+
+
 def get_total_value(user, tournament):
     try:
         profile = UserProfile.objects.get(user=user)

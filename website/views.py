@@ -243,19 +243,10 @@ def leaderboard_api(request):
 def leaderboard_page(request):
     latest_tournament = Tournament.objects.order_by('-start_time').first()
 
-    # Default values in case something goes wrong
-    current_value = 0
-
-    try:
-        balance, portfolio_value, total_value = get_total_value(request.user)
-        current_value = round(total_value, 2)
-    except Exception as e:
-        logger.warning(f"Could not compute current value for user {request.user.username}: {e}")
-
     return render(request, 'leaderboard.html', {
-        'tournament': latest_tournament,
-        'current_value': current_value
+        'tournament': latest_tournament or None,  # safe fallback
     })
+
 
 
 

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from website.models import UserPortfolio  # adjust this import as needed
+from stocks.models import UserPortfolio  # adjust this import as needed
 
 def get_total_value(user, tournament=None):
     try:

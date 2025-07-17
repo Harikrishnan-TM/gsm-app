@@ -1,5 +1,6 @@
 
-from website.models import UserProfile
+from website.models import UserProfile, Portfolio
+
 
 
 

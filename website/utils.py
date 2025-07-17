@@ -1,5 +1,6 @@
 # tournament/utils.py (or wherever your app is)
-from .models import Profile, Portfolio  # adjust the import based on your structure
+#from .models import Profile, Portfolio  # adjust the import based on your structure
+from website.models import UserProfile, Portfolio  # ✅ correct
 
 def get_total_value(user, tournament):
     try:

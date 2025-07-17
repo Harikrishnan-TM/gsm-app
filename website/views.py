@@ -217,13 +217,14 @@ def leaderboard_api(request):
                     'username': user.username,
                     'balance': round(balance, 2),
                     'portfolio_value': round(portfolio_value, 2),
-                    'final_score': round(total_value, 2),
+                    'total_value': round(total_value, 2),  # 👈 was 'final_score'
                 })
 
             except Exception as inner_e:
                 logger.error("Error processing user %s: %s", user.username, inner_e, exc_info=True)
 
-        leaderboard_sorted = sorted(leaderboard, key=lambda x: x['final_score'], reverse=True)
+        leaderboard_sorted = sorted(leaderboard, key=lambda x: x['total_value'], reverse=True)
+
 
         return JsonResponse(leaderboard_sorted, safe=False)
 

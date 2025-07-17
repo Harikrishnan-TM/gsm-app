@@ -244,7 +244,7 @@ def leaderboard_page(request):
     latest_tournament = Tournament.objects.order_by('-start_time').first()
 
     return render(request, 'leaderboard.html', {
-        'tournament': latest_tournament or None,  # safe fallback
+        'tournament': latest_tournament  # can be None — we handle it in template
     })
 
 

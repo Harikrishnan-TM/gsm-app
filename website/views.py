@@ -200,7 +200,41 @@ def leaderboard_view(request):
 
 logger = logging.getLogger(__name__)
 
+def leaderboard_api(request):
+    try:
+        latest_tournament = Tournament.objects.order_by('-start_time').first()
+        if not latest_tournament:
+            return JsonResponse([], safe=False)
 
+        entries = TournamentEntry.objects.filter(
+            tournament=latest_tournament
+        ).select_related('user')
+
+        leaderboard = []
+
+        for entry in entries:
+            try:
+                user = entry.user
+                balance, portfolio_value, total_value = get_total_value(user, latest_tournament)
+
+                leaderboard.append({
+                    'username': user.username,
+                    'balance': round(balance, 2),
+                    'portfolio_value': round(portfolio_value, 2),
+                    'total_value': round(total_value, 2),  # 👈 was 'final_score'
+                })
+
+            except Exception as inner_e:
+                logger.error("Error processing user %s: %s", user.username, inner_e, exc_info=True)
+
+        leaderboard_sorted = sorted(leaderboard, key=lambda x: x['total_value'], reverse=True)
+
+
+        return JsonResponse(leaderboard_sorted, safe=False)
+
+    except Exception as e:
+        logger.error("Error in leaderboard_api: %s", e, exc_info=True)
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
 @login_required
 def leaderboard_page(request):

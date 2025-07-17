@@ -10,6 +10,9 @@ import logging
 from website.utils import get_total_value
 
 
+from website.models import Tournament
+
+
 
 from django.db.models import Sum
 
@@ -232,3 +235,13 @@ def leaderboard_api(request):
         logger.error("Error in leaderboard_api: %s", e, exc_info=True)
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
+
+
+
+
+
+def leaderboard_page(request):
+    latest_tournament = Tournament.objects.order_by('-start_time').first()
+    return render(request, 'leaderboard.html', {
+        'tournament': latest_tournament  # ✅ this is required for the HTML to work
+    })

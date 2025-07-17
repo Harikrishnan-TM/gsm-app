@@ -1,16 +1,12 @@
-# tournament/utils.py (or wherever your app is)
-#from .models import Profile, Portfolio  # adjust the import based on your structure
-from website.models import UserProfile, Portfolio  # ✅ correct
-
 def get_total_value(user, tournament):
     try:
-        profile = Profile.objects.get(user=user)
+        profile = UserProfile.objects.get(user=user)
         balance = profile.balance
-    except Profile.DoesNotExist:
+    except UserProfile.DoesNotExist:
         balance = 0
 
-    holdings = Portfolio.objects.filter(user=user, tournament=tournament).select_related('stock')
-    portfolio_value = sum(h.quantity * h.stock.price for h in holdings)
+    holdings = Portfolio.objects.filter(user=user, tournament=tournament)
+    portfolio_value = sum(h.quantity * h.current_price for h in holdings)
 
     total_value = balance + portfolio_value
-    return total_value
+    return balance, portfolio_value, total_value

@@ -15,44 +15,12 @@
 </head>
 <body class="bg-light">
   <div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <!--<h2>🏆 Leaderboard</h2> -->
-      <h2>🏆 Leaderboard — Round {{ tournament.round_name|default_if_none:"Current" }}</h2>
-
-
-      <div>
-        <button onclick="loadLeaderboard()" class="btn btn-sm btn-outline-secondary me-2">🔄 Refresh</button>
-        <a href="{% url 'home' %}" class="btn btn-outline-primary">← Back to Home</a>
-      </div>
-    </div>
-
-    <p class="text-muted small" id="last-updated">Last updated: --</p>
-
-    <div class="card shadow-sm">
-      <div class="card-body p-0">
-        <table class="table table-striped mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Rank</th>
-              <th>User</th>
-              <th>Total Value (₹)</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-body">
-            <tr>
-              <td colspan="3" class="text-center">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <h1>Hello World! 👋</h1>
   </div>
 
   <script>
+    // Keeping the script for now, as it interacts with /api/leaderboard/
+    // but it won't affect the initial server-side render issue.
     const currentUser = '{{ request.user.username|escapejs }}';
 
     async function loadLeaderboard() {
